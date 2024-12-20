@@ -32,11 +32,11 @@ const InputField = React.forwardRef(({ className,
     stroke, strokeWidth, strokeLinecap, strokeLinejoin,
     ...props }, ref) => (
     <InputStyle>
-        <div className='Field'>
+        <div className={classNames("Field", className)}>
             {includeSVG && <svg className='Input-Icon' xmlns="http://www.w3.org/2000/svg" width={svgWidth} height={svgHeight} fill={svgColor} viewBox={viewBox}>
                 <path d={svgPath} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap={strokeLinecap} strokeLinejoin={strokeLinejoin} />
             </svg>}
-            <input ref={ref} className={classNames("InputField", className)} {...props} />
+            <input ref={ref} className="InputField" {...props} />
         </div>
     </InputStyle>
 ));
@@ -113,11 +113,6 @@ const CardStyle = styled.div`
         height:65vh;
 
         transition: .4s ease-in-out;
-
-        &.Card:hover{
-            transform: scale(1.01);
-            border: 1px solid black;
-        }
     }
 
     @media (min-width: 768px) and (max-width: 1024px){
@@ -153,14 +148,13 @@ const InputStyle = styled.div`
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.5em;
-    
+        
         border-radius: 25px;
     
         padding: 0.6em;
     
-        margin-left: 5em;
-        margin-right: 5em;
+        margin-left: 4em;
+        margin-right: 4em;
 
         border: none;
         outline: none;
@@ -261,8 +255,8 @@ const SearchFieldStyle = styled.div`
 
     .SearchBtn{
         padding: 0.2em;
-        padding-left: 0.8em;
-        padding-right: 0.8em;
+        padding-left: 0.5em;
+        padding-right: 0.5em;
         border-radius: 15px;
 
         margin-right: 0.5em;

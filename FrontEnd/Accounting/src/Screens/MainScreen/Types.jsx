@@ -161,16 +161,15 @@ function Types() {
         <BackGround className="Container">
             <header>
                 <div className="TopBar">
-                    <button className='Drawerbtn' onClick={toggleDrawer(true)}>
+                    <Button className='Drawerbtn' onClick={toggleDrawer(true)}>
                         <svg className="DrawerSvg" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="45" height="45" viewBox="0 0 40 40" fill='white'>
                             <path d="M 4 15 A 2.0002 2.0002 0 1 0 4 19 L 44 19 A 2.0002 2.0002 0 1 0 44 15 L 4 15 z M 4 29 A 2.0002 2.0002 0 1 0 4 33 L 44 33 A 2.0002 2.0002 0 1 0 44 29 L 4 29 z"></path>
                         </svg>
-                    </button>
+                    </Button>
                     <h2 className='TopBarText'>Types</h2>
-                    <button className='backbtn' onClick={backToMain}>Back</button>
+                    <Button className='backbtn' onClick={backToMain}>Back</Button>
                 </div>
             </header>
-
             <Drawer isOpen={isDrawerOpen} toggleDrawer={toggleDrawer} />
 
             <Card className="ItemsContainer">
@@ -203,10 +202,9 @@ function Types() {
                 <TableBody className="Tablebody">
                     {typesData.map((type, index) => (
                         <TableRow key={index}>
-                            <TableCell className='TypesCell' style={{ fontSize: '20px', padding: '10px' }}>
+                            <TableCell style={{ fontSize: '20px', padding: '10px' }}>
                                 {editType === type.type ? (
                                     <InputField
-                                        className='input-field'
                                         type="text"
                                         value={editTypeValue}
                                         onChange={(e) => setEditTypeValue(e.target.value)}
@@ -292,6 +290,10 @@ header{
     border:none;
     
     background-color: transparent;
+
+    &.Drawerbtn:hover{
+        background:none;
+    }
 
     &.Drawerbtn:hover .DrawerSvg{
         transition: .4s ease;
