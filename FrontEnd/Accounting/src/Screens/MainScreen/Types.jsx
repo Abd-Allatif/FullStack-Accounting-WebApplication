@@ -4,27 +4,17 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom'
 import Loader from '../../Tools/Loader'
 import { refreshAccessToken } from '../../Tools/authService'
+import { getTypes,debounce,searchType } from '../../Tools/BackendServices'
 import Drawer from '../../Tools/Drawer'
-import { BackGround, Card, InputField, Button, SearchField } from '../../Tools/Components'
+import { BackGround, Card, InputField, Button, SearchField,TopBar } from '../../Tools/Components'
 import {
     Table,
     TableBody,
     TableCell,
-    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
 } from "../../Tools/TableComponent"
-
-// Debounce function to limit the API calls
-const debounce = (func, delay) => {
-    let debounceTimer;
-    return function (...args) {
-        const context = this;
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => func.apply(context, args), delay);
-    };
-};
 
 function Types() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -51,34 +41,12 @@ function Types() {
         setIsDrawerOpen(open);
     };
 
-    const fetchTypes = async () => {
-        // Refresh the access token
-        const newAccessToken = await refreshAccessToken();
-
-        await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/types`, {
-            headers: {
-                'Authorization': `Bearer ${newAccessToken}`,
-                'Content-Type': 'application/json'
-            }
-        }).then(response => {
-            setTypesData(Array.isArray(response.data) ? response.data : [])
-        }).catch(error => {
-            alert("An error happened while fetching types. Please try again.");
-
-        });
+    const fetchTypes = () => {
+       getTypes(userData,setTypesData);
     };
 
     const searchfetchTypes = async (query = '') => {
-        const newAccessToken = await refreshAccessToken();
-        await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/${query}`, {
-            headers: {
-                'Authorization': `Bearer ${newAccessToken}`,
-                'Content-Type': 'application/json'
-            }
-        }).then(response => {
-            setTypesData(Array.isArray(response.data) ? response.data : [])
-        }).catch(error => {
-        });
+        searchType(userData,query,setTypesData);
     };
 
     const debouncedFetchTypes = useCallback(debounce(searchfetchTypes, 300), []);
@@ -117,7 +85,6 @@ function Types() {
             setLoading(false);
         });
     };
-
 
     const clearbtnClick = () => {
         fetchTypes();
@@ -159,17 +126,7 @@ function Types() {
 
     return (<StyledWrapper>
         <BackGround className="Container">
-            <header>
-                <div className="TopBar">
-                    <Button className='Drawerbtn' onClick={toggleDrawer(true)}>
-                        <svg className="DrawerSvg" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="45" height="45" viewBox="0 0 40 40" fill='white'>
-                            <path d="M 4 15 A 2.0002 2.0002 0 1 0 4 19 L 44 19 A 2.0002 2.0002 0 1 0 44 15 L 4 15 z M 4 29 A 2.0002 2.0002 0 1 0 4 33 L 44 33 A 2.0002 2.0002 0 1 0 44 29 L 4 29 z"></path>
-                        </svg>
-                    </Button>
-                    <h2 className='TopBarText'>Types</h2>
-                    <Button className='backbtn' onClick={backToMain}>Back</Button>
-                </div>
-            </header>
+            <TopBar  drawerButton_Onclick={toggleDrawer(true)} backButton_Onclick={backToMain} Text="Types"  />
             <Drawer isOpen={isDrawerOpen} toggleDrawer={toggleDrawer} />
 
             <Card className="ItemsContainer">
@@ -233,9 +190,7 @@ function Types() {
 }
 
 const StyledWrapper = styled.div`
-header{
-    margin-bottom:3.7em;
-}
+
 
 .Container {
   display: flex;
@@ -244,61 +199,6 @@ header{
   justify-content: center;
 
   height:100vh;
-}
-
-.TopBar{
-    display:flex;
-    flex-direction:row;
-
-    position:fixed;
-    top:0;
-    left:0;
-
-    z-index: 1000;
-
-    justify-content:space-between;
-    align-items:center;
-
-    background-color: #171717;
-    padding-bottom: 0.2em;
-    padding-top:0.01em;
-
-    transition: .4s ease-in-out;
-
-    width:100vw;
-    height:65px;
-
-    &.TopBar:hover{
-        transform: scale(1.02);
-        border: 1px solid black;
-    }
-}
-
-.TopBarText{
-    flex-grow: 1;
-    color:white;
-    text-align:center;
-    font-size:20px;
-}
-
-.Drawerbtn{
-    margin-right:1em;    
-    margin-bottom:0.1em;
-
-    padding:1em;
-
-    border:none;
-    
-    background-color: transparent;
-
-    &.Drawerbtn:hover{
-        background:none;
-    }
-
-    &.Drawerbtn:hover .DrawerSvg{
-        transition: .4s ease;
-        fill: #222222;
-    }
 }
 
 .ItemsContainer{

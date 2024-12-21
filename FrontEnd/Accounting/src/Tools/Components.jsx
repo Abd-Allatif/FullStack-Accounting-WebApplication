@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 import * as React from "react";
 import classNames from "classnames";
-
+import { useState,useRef } from 'react';
 
 const BackGround = React.forwardRef(({ className, ...props }, ref) => (
     <BackGroundStyle>
@@ -51,7 +51,7 @@ const Button = React.forwardRef(({ className, children, ...props }, ref) => (
 Button.displayName = "Button";
 
 
-const SearchField = React.forwardRef(({ className, onClick, value, onChange, ...props }, ref) => (
+const SearchField = React.forwardRef(({ onClick, value, onChange }, ref) => (
     <SearchFieldStyle>
         <div className='FilterContainer'>
             <svg width="35px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -65,12 +65,30 @@ const SearchField = React.forwardRef(({ className, onClick, value, onChange, ...
 ));
 SearchField.displayName = "SearchField";
 
+const TopBar = React.forwardRef(({ drawerButton_Onclick, backButton_Onclick, Text, ...props }, ref) => (
+    <TopBarStyle>
+        <header>
+            <div className="TopBar">
+                <Button className='Drawerbtn' onClick={drawerButton_Onclick}>
+                    <svg className="DrawerSvg" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="45" height="45" viewBox="0 0 40 40" fill='white'>
+                        <path d="M 4 15 A 2.0002 2.0002 0 1 0 4 19 L 44 19 A 2.0002 2.0002 0 1 0 44 15 L 4 15 z M 4 29 A 2.0002 2.0002 0 1 0 4 33 L 44 33 A 2.0002 2.0002 0 1 0 44 29 L 4 29 z"></path>
+                    </svg>
+                </Button>
+                <h2 className='TopBarText'>{Text}</h2>
+                <Button className='backbtn' onClick={backButton_Onclick}>Back</Button>
+            </div>
+        </header>
+    </TopBarStyle>
+));
+TopBar.displayName = "TopBar";
+
 export {
     Card,
     InputField,
     Button,
     BackGround,
     SearchField,
+    TopBar,
 };
 
 const BackGroundStyle = styled.div`
@@ -219,59 +237,142 @@ const ButtonStyle = styled.div`
 
 const SearchFieldStyle = styled.div`
     .FilterContainer{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5em;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5em;
 
-    padding: 0.6em;
-    padding-left: 1.5em;
-    
-    width:100vw;
-    height:6vh;
-    
-    border: none;
-    outline: none;
-    
-    color: white;
-    background-color: #171717;
-    
-    
-    box-shadow: inset 2px 5px 10px rgb(5, 5, 5);
-
-
-    .Search{
-    background: none;
-    border: none;
-    outline: none;
-    width: 100%;
-    color: #d3d3d3;
-
-    padding: 0.5em;
-    &.input-field::placeholder{
-        text-align: center;
-    }
-    }
-
-    .SearchBtn{
-        padding: 0.2em;
+        padding: 0.6em;
         padding-left: 0.5em;
-        padding-right: 0.5em;
-        border-radius: 15px;
-
-        margin-right: 0.5em;
-        border: none;
     
+        width:100vw;
+        height:6vh;
+    
+        border: none;
         outline: none;
     
-        transition: .4s ease-in-out;
-    
-        background-color: #252525;
         color: white;
+        background-color: #171717;
+    
+    
+        box-shadow: inset 2px 5px 10px rgb(5, 5, 5);
 
-        &.SearchBtn:hover{
-             background-color: black;
+
+        .Search{
+            background: none;
+            border: none;
+            outline: none;
+            width: 100%;
+            color: #d3d3d3;
+
+            padding: 0.5em;
+            &.input-field::placeholder{
+                text-align: center;
+            }
         }
+
+        .SearchBtn{
+            padding: 0.2em;
+            padding-left: 0.5em;
+            padding-right: 0.5em;
+            border-radius: 15px;
+
+            margin-right: 0.5em;
+            border: none;
+    
+            outline: none;
+    
+            transition: .4s ease-in-out;
+    
+            background-color: #252525;
+            color: white;
+
+            &.SearchBtn:hover{
+                background-color: black;
+            }
+    }
+}
+
+
+@media (max-width: 768px) {
+    .FilterContainer{
+       
+        padding-left: 0.2em;
+        padding-bottom: 1.5em;
+        padding-top: 1.5em;
+
+        .Search {
+            padding: 0.5em;
+        }
+
+        .SearchBtn{
+            padding: 0.2em;
+            padding-left: 0.5em;
+            padding-right: 0.5em;
+            margin-right: 0.5em;
+        }
+    }
+}
+
+`;
+
+const TopBarStyle = styled.div`
+    header{
+        margin-bottom:3.7em;
+    }
+
+    .TopBar{
+        display:flex;
+        flex-direction:row;
+
+        position:fixed;
+        top:0;
+        left:0;
+
+        z-index: 1000;
+
+        justify-content:space-between;
+        align-items:center;
+
+        background-color: #171717;
+        padding-bottom: 0.2em;
+        padding-top:0.01em;
+
+        transition: .4s ease-in-out;
+
+        width:100vw;
+        height:65px;
+
+        &.TopBar:hover{
+            transform: scale(1.02);
+            border: 1px solid black;
+        }
+}
+
+.TopBarText{
+    flex-grow: 1;
+    color:white;
+    text-align:center;
+    font-size:20px;
+}
+
+.Drawerbtn{
+    margin-right:1em;    
+    margin-bottom:0.1em;
+
+    padding:1em;
+
+    border:none;
+    
+    background-color: transparent;
+
+    &.Drawerbtn:hover{
+        background:none;
+    }
+
+    &.Drawerbtn:hover .DrawerSvg{
+        transition: .4s ease;
+        fill: #222222;
     }
 }
 

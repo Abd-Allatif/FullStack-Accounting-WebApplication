@@ -2,7 +2,12 @@ import styled from 'styled-components';
 import axios from 'axios';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'
-import { login, refreshAccessToken } from '../../Tools/authService'
+import { refreshAccessToken } from '../../Tools/authService'
+import {
+    debounce, searchType,
+    searchBy_Supplies_Types,
+    getSupplies,
+} from '../../Tools/BackendServices'
 import Loader from '../../Tools/Loader'
 import Types from './Types';
 import Drawer from '../../Tools/Drawer'
@@ -10,22 +15,11 @@ import {
     Table,
     TableBody,
     TableCell,
-    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
 } from "../../Tools/TableComponent"
-import { BackGround, Card, InputField, Button, SearchField } from '../../Tools/Components'
-
-// Debounce function to limit the API calls
-const debounce = (func, delay) => {
-    let debounceTimer;
-    return function (...args) {
-        const context = this;
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => func.apply(context, args), delay);
-    };
-};
+import { BackGround, Card, InputField, Button, SearchField, TopBar } from '../../Tools/Components'
 
 function Supplies() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -52,7 +46,7 @@ function Supplies() {
     });
     const [newSupply, setNewSupply] = useState('');
 
-    const units = ['Kgram', 'gram', 'Peace']
+    const units = ['Unit', 'Kgram', 'gram', 'Peace']
 
     const userData = JSON.parse(localStorage.getItem('user_data'));
 
@@ -80,16 +74,7 @@ function Supplies() {
     };
 
     const searchfetchTypes = async (query = '') => {
-        const newAccessToken = await refreshAccessToken();
-        await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/${query}`, {
-            headers: {
-                'Authorization': `Bearer ${newAccessToken}`,
-                'Content-Type': 'application/json'
-            }
-        }).then(response => {
-            setTypesData(Array.isArray(response.data) ? response.data : [])
-        }).catch(error => {
-        });
+        searchType(userData, query, setTypesData);
     };
 
     const debouncedFetchTypes = useCallback(debounce(searchfetchTypes, 300), []);
@@ -104,18 +89,7 @@ function Supplies() {
     };
 
     const searchFetchTypesAndSupplies = async (query = '') => {
-        const newAccessToken = await refreshAccessToken();
-        await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search/${query}`, {
-            headers: {
-                'Authorization': `Bearer ${newAccessToken}`,
-                'Content-Type': 'application/json'
-            }
-        }).then(response => {
-            setSuppliesData(Array.isArray(response.data.supplies) ? response.data.supplies : []);
-            setTypesData(Array.isArray(response.data.types) ? response.data.types : []);
-        }).catch(error => {
-            console.error("Error fetching types and supplies", error);
-        });
+        searchBy_Supplies_Types(userData, query, setSuppliesData, setTypesData)
     };
 
     const debouncedFetchTypesAndSupplies = useCallback(debounce(searchFetchTypesAndSupplies, 300), []);
@@ -159,22 +133,8 @@ function Supplies() {
         }
     };
 
-
-    const fetchSupplies = async () => {
-        // Refresh the access token
-        const newAccessToken = await refreshAccessToken();
-
-        await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/supplies/`, {
-            headers: {
-                'Authorization': `Bearer ${newAccessToken}`,
-                'Content-Type': 'application/json'
-            }
-        }).then(response => {
-            setSuppliesData(Array.isArray(response.data) ? response.data : [])
-            console.log(response.data);
-        }).catch(error => {
-            alert("An error happened while fetching types. Please try again.");
-        });
+    const fetchSupplies = () => {
+        getSupplies(userData, setSuppliesData);
     };
 
     useEffect(() => {
@@ -298,22 +258,9 @@ function Supplies() {
         }
     };
 
-
-
-
     return (<StyledWrapper>
         <BackGround className="Container">
-            <header>
-                <div className="TopBar">
-                    <Button className='Drawerbtn' onClick={toggleDrawer(true)}>
-                        <svg className="DrawerSvg" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="45" height="45" viewBox="0 0 40 40" fill='white'>
-                            <path d="M 4 15 A 2.0002 2.0002 0 1 0 4 19 L 44 19 A 2.0002 2.0002 0 1 0 44 15 L 4 15 z M 4 29 A 2.0002 2.0002 0 1 0 4 33 L 44 33 A 2.0002 2.0002 0 1 0 44 29 L 4 29 z"></path>
-                        </svg>
-                    </Button>
-                    <h2 className='TopBarText'>Supplies</h2>
-                    <Button className='backbtn' onClick={backToMain}>Back</Button>
-                </div>
-            </header>
+            <TopBar drawerButton_Onclick={toggleDrawer(true)} backButton_Onclick={backToMain} Text="Supplies" />
             <Drawer isOpen={isDrawerOpen} toggleDrawer={toggleDrawer} />
 
             <Card className="ItemsContainer">
@@ -339,7 +286,28 @@ function Supplies() {
                     <InputField className="FirstrowField" placeholder='Supply' type="text" value={supplies} onChange={(e) => setsupplies(e.target.value)} />
                 </div>
 
+                <div className="Secondrow">
+                    <div className="CountityField">
+                        <div className="UnitDropDown">
+                            <Button className="UnitButton" onClick={handleDropdownToggle}>{unit}</Button>
+                            {dropdownVisible && (<div className="dropdown"> {units.map((unit, index) => (<div key={index} className={`dropdown-item`} onClick={() => handleUnitSelect(unit)}> {unit} </div>))} </div>)}
+                        </div>
+                        <InputField placeholder='Countity' type="number" className="Countity" value={countity} onChange={(e) => setCountity(e.target.value)} />
+                    </div>
+                    <InputField placeholder='Buy Price' type="number" className="SecondrowField" value={buyPrice} onChange={(e) => setBuyPrice(e.target.value)} />
+                    <InputField placeholder='Sell Price' type="number" className="SecondrowField" value={sellPrice} onChange={(e) => setSellPrice(e.target.value)} />
+                </div>
+
+                <div className="Thirdrow">
+                    <p style={{ color: 'white' }}>{suppliesAdded}</p>
+                </div>
+
+                <div className="Fourthrow">
+                    <Button onClick={send_data}>Add Supply</Button>
+                </div>
+
             </Card>
+
             <SearchField onClick={clearButton} value={search} onChange={handlesuppliesSearchChange} ></SearchField>
 
             <Table className='Table'>
@@ -452,8 +420,8 @@ function Supplies() {
                     ))}
                 </TableBody>
             </Table>
-        </BackGround>
-    </StyledWrapper>)
+    </BackGround>
+    </StyledWrapper >)
 }
 
 const StyledWrapper = styled.div`
@@ -470,61 +438,6 @@ header{
   height:100vh;
 }
 
-.TopBar{
-    display:flex;
-    flex-direction:row;
-
-    position:fixed;
-    top:0;
-    left:0;
-
-    z-index: 1000;
-
-    justify-content:space-between;
-    align-items:center;
-
-    background-color: #171717;
-    padding-bottom: 0.2em;
-    padding-top:0.01em;
-
-    transition: .4s ease-in-out;
-
-    width:100vw;
-    height:65px;
-
-    &.TopBar:hover{
-        transform: scale(1.02);
-        border: 1px solid black;
-    }
-}
-
-.TopBarText{
-    flex-grow: 1;
-    color:white;
-    text-align:center;
-    font-size:20px;
-}
-
-.Drawerbtn{
-    margin-right:1em;    
-    margin-bottom:0.1em;
-
-    padding:1em;
-
-    border:none;
-    
-    background-color: transparent;
-
-    &.Drawerbtn:hover{
-        background:none;
-    }
-
-    &.Drawerbtn:hover .DrawerSvg{
-        transition: .4s ease;
-        fill: #222222;
-    }
-}
-
 .ItemsContainer{
         margin-top: 3em;
         margin-left:0.5em;
@@ -536,7 +449,6 @@ header{
         width:43vw;
         height: 45vh;
 }
-
 
 .Firstrow{
     display:flex;
@@ -552,7 +464,7 @@ header{
     .FirstrowField{
         margin-left:0.5em;
         margin-right:0.5em;
-        width:17em;
+        width:16em;
     }
 
     .typeField{
@@ -589,14 +501,46 @@ dropdown-item-focused {
 
 .Secondrow{
     display:flex;
-    felx-direction:row;
     align-items:center;
     justify-content:center;
-    
-    margin-top:-3em;
 
-    padding:1em;
-    height:6em;
+    margin-top:-2em;
+
+    .CountityField{
+        display:flex;
+        flex-direction:row;
+
+        align-items:center;
+        justify-content:center;
+
+        padding-right:-1em;
+        padding-left:1em;
+
+        margin-left:0.5em;
+        
+        .Countity{
+            width:8em;
+            
+            padding-top:0.7em;
+
+            margin-top:0.7em;
+            margin-right:1em;
+            margin-left:0.3em;
+        }
+
+        .UnitDropDown{
+            position: relative;
+        }
+    }
+
+    .SecondrowField{
+        padding-top:0.7em;
+
+        margin-top:0.5em;
+        margin-left: 0.2em;       
+        margin-right: 1.5em;       
+    }
+
 }
 
 .Thirdrow{
@@ -695,10 +639,8 @@ dropdown-item-focused {
 .Table-Input-Field{
     font-size:16px;
     width:150px;
-    height:20px;
+    height:30px;
 }
-
-
 
 @media (min-width: 768px) and (max-width: 1024px){
     .TopBarText{
@@ -742,21 +684,24 @@ dropdown-item-focused {
         text-align:start;
     }
 
+    .Container{
+        overflow:hidden;
+    }
+
     .ItemsContainer{
-        margin-top: 5em;
+        margin-top: 2em;
         margin-left:0.5em;
         margin-right:0.5em;
-        margin-bottom:1.5em;
+        margin-bottom:1em;
 
         padding:0.5em;
 
-        width:90vw;
-        height: 50vh;
+        width:97vw;
+        height: 60vh;
     }
 
-
     .Firstrow{
-        margin-top:1em;
+        margin-top:1.2em;
         padding:0.2em;
         height:6em;
 
@@ -765,6 +710,42 @@ dropdown-item-focused {
             margin-right:0.5em;
             width:9em;
         }
+    }
+
+    .Secondrow{
+        flex-direction:column;
+        margin-top:-2em;
+        margin-bottom:2em;
+
+        .CountityField{
+            padding-right:-1em;
+            padding-left:1em;
+
+            margin-left:0.5em;
+        
+            .Countity{
+                width:6em;
+            
+                padding-top:0.7em;
+
+                margin-top:0.7em;
+                margin-right:0.1em;
+                margin-left:0.3em;
+            }
+
+            .UnitDropDown{
+                position: relative;
+            }
+        }
+
+        .SecondrowField{
+            padding-top:0.7em;
+
+            margin-top:0.5em;
+            margin-left: 0.2em;       
+            margin-right: 1.5em;       
+        }
+
     }
 }  
 `;

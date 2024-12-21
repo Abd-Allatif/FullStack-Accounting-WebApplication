@@ -93,7 +93,7 @@ function Login() {
           </div>
 
           <div className="ButtonContainer">
-            <Button onClick={submitData}>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Login&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</Button>
+            <Button className="Login" onClick={submitData}>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Login&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</Button>
             <Button className="SignUp" onClick={goRegisterPage}>Sign Up</Button>
           </div>
           
@@ -175,6 +175,35 @@ const StyledWrapper = styled.div`
   
   .Loader{
     align-self: center;
+  }
+
+  @media (max-width: 768px) {
+      .ButtonContainer {
+        margin-top: 2.7em;
+        padding-left:0.3em;
+        padding-right:0.3em;
+      }
+  
+
+      .ButtonContainer2 {
+        margin-top: 0.5em;
+      }   
+        
+      .SignUp {
+        padding-left: 1em;
+        padding-right: 1em;
+      }
+
+      .Login{
+        padding-left:0.7em;
+        padding-right:0.7em;
+      }
+
+      .ForgotPassword {
+        margin-bottom: 1em;
+        padding-left: 2.9em;
+        padding-right: 2.9em;
+      }
   }
 
   `;
