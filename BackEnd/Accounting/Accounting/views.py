@@ -348,11 +348,14 @@ def manage_reciepts(request,username):
                 user_instance = User.objects.get(user_name = user_data)
                 type_instance = Type.objects.get(type = types)
                 supplies_instance = Supplies.objects.get(supply_name = supplies,user = user_instance)
+                Reciept.objects.create(user=user_instance,type=type_instance,
+                                       supply=supplies_instance,countity=countity,buy_price=buy_price,
+                                       sell_price=sell_price,notes=notes)
 
             return Response({'message': 'Setup successful!'}, status=status.HTTP_200_OK)
 
         if request.method == 'GET':
-            reciepts = Reciepts.objects.filter(user=user)
+            reciepts = Reciept.objects.filter(user=user)
             serializer = RecieptSerializer(reciepts, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         
