@@ -70,6 +70,19 @@ const searchBy_Supplies_Types = async (userData, query, setSuppliesData, setType
     });
 };
 
+const searchBy_Supplies= async (userData, query, setSuppliesData) => {
+    const newAccessToken = await refreshAccessToken();
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-supplies/${query}`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setSuppliesData(Array.isArray(response.data.supplies) ? response.data.supplies : []);
+    }).catch(error => {
+    });
+};
+
 
 export {
     getTypes,
@@ -77,4 +90,5 @@ export {
     searchType,
     getSupplies,
     searchBy_Supplies_Types,
+    searchBy_Supplies,
 };

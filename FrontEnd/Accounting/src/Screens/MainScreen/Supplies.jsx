@@ -9,8 +9,8 @@ import {
     getSupplies,
 } from '../../Tools/BackendServices'
 import Loader from '../../Tools/Loader'
-import Types from './Types';
 import Drawer from '../../Tools/Drawer'
+import { units } from '../../Tools/Math';
 import {
     Table,
     TableBody,
@@ -45,8 +45,6 @@ function Supplies() {
         sell_price: ''
     });
     const [newSupply, setNewSupply] = useState('');
-
-    const units = ['Unit', 'Kgram', 'gram', 'Peace']
 
     const userData = JSON.parse(localStorage.getItem('user_data'));
 
