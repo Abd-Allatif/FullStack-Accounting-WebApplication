@@ -154,6 +154,14 @@ function Reciepts() {
         }
     };
 
+    const send_data = async (event) => {
+        event.preventDefault();
+
+        // Refresh the access token
+        const newAccessToken = await refreshAccessToken();
+
+    };
+
 
     return (<StyledWrapper>
         <BackGround className="Container">
