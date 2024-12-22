@@ -282,8 +282,6 @@ def edit_supplies(request, username):
         logger.error(f"EditSupplies error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_types_and_supplies(request, username, query):
@@ -310,7 +308,59 @@ def search_types_and_supplies(request, username, query):
         logger.error(f"SearchTypesAndSupplies error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_supplies(request, username, query):
+    try:
+        user_instance = User.objects.get(user_name=username)
+        
+        # Search for supplies by supply_name and related type
+        supplies = Supplies.objects.filter(
+            Q(supply_name__icontains=query), user=user_instance
+        )
+        supplies_serializer = SuppliesSerializer(supplies, many=True)
+                
+        return Response({
+            'supplies': supplies_serializer.data,
+        }, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"SearchTypesAndSupplies error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+api_view(['POST','GET'])
+@permission_classes([IsAuthenticated])
+def manage_reciepts(request,username):
+    try:
+        user = User.objects.get(user_name = username)
+
+        if request.method == 'POST':
+            user_data = request.data.get('user')
+            types = request.data.get('types')
+            supplies = request.data.get('supplies')
+            countity = int(request.data.get('countity'))
+            buy_price = int(request.data.get('buy_price'))
+            sell_price = int(request.data.get('sell_price'))
+            notes = request.data.get('notes')
+
+            if user_data:
+                user_instance = User.objects.get(user_name = user_data)
+                type_instance = Type.objects.get(type = types)
+                supplies_instance = Supplies.objects.get(supply_name = supplies,user = user_instance)
+
+            return Response({'message': 'Setup successful!'}, status=status.HTTP_200_OK)
+
+        if request.method == 'GET':
+            reciepts = Reciepts.objects.filter(user=user)
+            serializer = RecieptSerializer(reciepts, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'})
+    except Exception as e:
+        logger.error(f"SetupAccount error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 #--------------------------------------------------------------------------

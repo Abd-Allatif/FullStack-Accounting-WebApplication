@@ -479,7 +479,7 @@ class Reciept(models.Model):
     # Sell Price
     sell_price = models.IntegerField()
     # Total Value: Buy Price x Countity
-    total = models.IntegerField(editable=False,default=0)
+    total = models.IntegerField(default=0)
     # Date
     date = models.DateField(auto_now=True)
     # Notes

@@ -17,6 +17,7 @@ urlpatterns = [
     path('api/users/<str:username>/supplies/',views.manage_supplies,name='manage_supplies'),
     path('api/users/<str:username>/edit-supplies/', views.edit_supplies, name='edit_supplies'),
     path('api/users/<str:username>/search/<str:query>', views.search_types_and_supplies, name='search_types_and_supplies'),
+    path('api/users/<str:username>/search-supplies/<str:query>', views.search_supplies, name='search_supplies'),
     path('api/data/export/export-excel/<str:username>/', views.export_all_data_excel, name='export_all_data_excel'),
     path('api/data/export/export-pdf/<str:username>/', views.export_all_data_pdf, name='export_all_data_pdf'),
 
