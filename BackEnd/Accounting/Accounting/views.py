@@ -1,4 +1,5 @@
 from urllib import response
+from numpy import double
 import pandas as pd
 import logging
 from django.http import HttpResponse
@@ -16,6 +17,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework import status
+from .calculations import calculateTotalPrice
 
 logger = logging.getLogger(__name__)
 
@@ -345,24 +347,29 @@ def reciepts(request,username):
             buy_price = int(request.data.get('buy_price'))
             sell_price = int(request.data.get('sell_price'))
             notes = request.data.get('notes')
-            total = request.data.get('total')
             
             if user_data:
                 user_instance = User.objects.get(user_name = user_data)
                 type_instance = Type.objects.get(user=user_instance,type = types)
                
 
-                try:
-                    supplies_instance = Supplies.objects.get(supply_name = supplies,user = user_instance)
-                except:
-                    Supplies.objects.create(user=user_instance,type=type_instance,supply_name=supplies)
-                    supplies_instance = Supplies.objects.get(supply_name = supplies,user = user_instance)
+                if type_instance:
+                    try:
+                        supplies_instance = Supplies.objects.get(supply_name = supplies,user = user_instance)
+                    except:
+                        Supplies.objects.create(user=user_instance,type=type_instance,supply_name=supplies)
+                        supplies_instance = Supplies.objects.get(supply_name = supplies,user = user_instance)
 
-                Reciept.objects.create(user=user_instance,type=type_instance,
-                                       supply=supplies_instance,countity=countity,buy_price=buy_price,
-                                       sell_price=sell_price,notes=notes)
+                    Reciept.objects.create(user=user_instance,type=type_instance,
+                                            supply=supplies_instance,countity=countity,buy_price=buy_price,
+                                            sell_price=sell_price,
+                                            total = calculateTotalPrice(countity,supplies_instance.unit,buy_price),
+                                            notes=notes)
+                        
+                    return Response({'message': 'Setup successful!'}, status=status.HTTP_200_OK)
+                else:
+                    return Response({'message': 'Type Does Not Exists Please Insert And Existing Type'},status=status.HTTP_404_NOT_FOUND)
                 
-                return Response({'message': 'Setup successful!'}, status=status.HTTP_200_OK)
         
         if request.method == 'GET':
             reciepts = Reciept.objects.filter(user=user)
@@ -376,24 +383,89 @@ def reciepts(request,username):
         logger.error(f"Unexpected error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@api_view(['GET'])
+@api_view(['PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
-def getSupplyUnit(request, username, supply):
+def edit_reciepts(request, username):
     try:
         user_instance = User.objects.get(user_name=username)
-        
-        if request.method == 'GET':
-            supplies = Supplies.objects.filter(user=user_instance, supply_name=supply).values('unit')
+
+        if request.method == 'PUT':
+            id = int(request.data.get('id'))
+            types = request.data.get('type')
+            supplies = request.data.get('supply')
+            countity = int(request.data.get('countity'))
+            buy_price = int(request.data.get('buy_price'))
+            sell_price = int(request.data.get('sell_price'))
+            notes = request.data.get('notes')
+
             if supplies:
-                return Response({'unit': supplies['unit']}, status=status.HTTP_200_OK)
+                try:
+                    reciept_instance = Reciept.objects.get(id=id, user=user_instance)
+                    reciept_instance.delete()
+                    reciept_instance.type = Type.objects.get(type=types, user=user_instance)
+                    reciept_instance.supply = Supplies.objects.get(supply_name=supplies,user=user_instance)
+                    reciept_instance.countity = countity
+                    reciept_instance.buy_price = buy_price
+                    reciept_instance.sell_price = sell_price
+                    reciept_instance.notes = notes
+                    reciept_instance.save()
+                    
+                    return Response({'message': 'Reciept updated successfully!'}, status=status.HTTP_200_OK)
+                except Reciept.DoesNotExist:
+                    return Response({'error': 'Reciept not found'}, status=status.HTTP_404_NOT_FOUND)
             else:
-                return Response({'error': 'Supply not found'}, status=status.HTTP_404_NOT_FOUND)
-        
+                return Response({'error': 'Supplies not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        elif request.method == 'DELETE':
+            reciept_to_delete = request.data.get('id')
+
+            if reciept_to_delete:
+                try:
+                    reciept_instance = Reciept.objects.get(id=reciept_to_delete, user=user_instance)
+                    reciept_instance.delete()
+                    return Response({'message': 'Reciept deleted successfully!'}, status=status.HTTP_200_OK)
+                except Reciept.DoesNotExist:
+                    return Response({'error': 'Reciept not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Reciept ID not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'error': 'Invalid request method'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        logger.error(f"getSupplyUnit error: {e}")
+        logger.error(f"EditReciepts error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_Reciepts(request, username, query):
+    try:
+        user_instance = User.objects.get(user_name=username)
+        
+        # Find Supplies and Types matching the query
+        supplies = Supplies.objects.filter(supply_name__icontains=query)
+        types = Type.objects.filter(type__icontains=query)
+        
+        # Filter Reciept objects based on the found Supplies and Types
+        reciepts = Reciept.objects.filter(
+            Q(supply__in=supplies) | Q(type__in=types) | Q(date__icontains=query), user=user_instance
+        )
+        
+        recieptSerializer = RecieptSerializer(reciepts, many=True)
+        types_serializer = TypeSerializer(types, many=True)
+        
+        return Response({
+            'reciepts': recieptSerializer.data,
+            'types': types_serializer.data
+        }, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"SearchTypesAndSupplies error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 #--------------------------------------------------------------------------

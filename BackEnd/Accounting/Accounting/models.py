@@ -486,10 +486,10 @@ class Reciept(models.Model):
     notes = models.CharField(max_length=400,null=True,blank=True)
 
     # Defining a Function to Calculate the Total Value: Countity x Price
-    def save(self,*args,**kwargs):
-        self.total = self.countity * self.buy_price
-         # Saving Changes``
-        super(Reciept,self).save(*args,**kwargs)
+    # def save(self,*args,**kwargs):
+    #     self.total = self.countity * self.buy_price
+    #      # Saving Changes``
+    #     super(Reciept,self).save(*args,**kwargs)
 
 
     def __str__(self):
