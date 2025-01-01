@@ -5,11 +5,11 @@ import { useNavigate } from 'react-router-dom'
 import { refreshAccessToken } from '../../Tools/authService'
 import {
     debounce, searchType,
-    searchBy_Supplies,getUnit,
+    searchBy_Supplies, getReciepts,
+    search_Reciepts,
 } from '../../Tools/BackendServices'
 import Loader from '../../Tools/Loader'
 import Drawer from '../../Tools/Drawer'
-import { calculateTotalPrice } from '../../Tools/Math';
 import {
     Table,
     TableBody,
@@ -32,15 +32,25 @@ function Reciepts() {
     const [sell_price, setSellPrice] = useState('');
     const [notes, setNotes] = useState('');
     const [recieptAdded, setRecieptAdded] = useState('');
-    const [recieptsData, setRecieptsData] = useState({
+    const [recieptsData, setRecieptsData] = useState([{
         type: '',
-        supplies: '',
+        supply: '',
+        countity: '',
+        buy_price: '',
+        sell_price: '',
+        notes: '',
+    }]);
+    const [editRecieptId, setEditRecieptId] = useState(null);
+    const [editRecieptsData, setEditRecieptsData] = useState({
+        id: '',
+        type: '',
+        supply: '',
         countity: '',
         buy_price: '',
         sell_price: '',
         notes: '',
     });
-    const [unit, setUnit] = useState('');
+    const [searchTypesAndSupplies, setSearchTypesAndSupplies] = useState('');
 
     const userData = JSON.parse(localStorage.getItem('user_data'));
 
@@ -54,6 +64,10 @@ function Reciepts() {
 
     const navigatetoTypes = () => {
         navigate("/main/types");
+    };
+
+    const navigatetoSupplies = () => {
+        navigate("/main/supplies");
     };
 
     const toggleDrawer = (open) => (event) => {
@@ -162,13 +176,26 @@ function Reciepts() {
         }
     };
 
+    const searchFetchTypesAndSupplies = async (query = '') => {
+        search_Reciepts(userData, query, setRecieptsData)
+    };
+
+    const debouncedFetchTypesAndSupplies = useCallback(debounce(searchFetchTypesAndSupplies, 300), []);
+
+    const hanldeRecieptSearch = (event) => {
+        const query = event.target.value;
+        setSearchTypesAndSupplies(query);
+        debouncedFetchTypesAndSupplies(query);
+        if (query === "" || query === null) {
+            setRecieptsData([]);
+        }
+    };
+
     const buy_Supply = async (event) => {
         event.preventDefault();
 
         // Refresh the access token
         const newAccessToken = await refreshAccessToken();
-
-        await getUnit(userData,searchSupplies,setUnit);
 
         await axios.post(`${import.meta.env.VITE_API_URL}/${userData.user_name}/buy-supplies/`, {
             user: userData.user_name,
@@ -178,7 +205,6 @@ function Reciepts() {
             buy_price: buy_price,
             sell_price: sell_price,
             notes: notes,
-            total: calculateTotalPrice(countity, unit, buy_price),
         }, {
             headers: {
                 'Authorization': `Bearer ${newAccessToken}`,
@@ -188,7 +214,7 @@ function Reciepts() {
             setRecieptAdded(`${searchSupplies} Bought Successfully`);
             setRecieptsData([...recieptsData, {
                 type: searchTypes,
-                supplies: searchSupplies,
+                supply: searchSupplies,
                 countity: countity,
                 buy_price: buy_price,
                 sell_price: sell_price,
@@ -200,9 +226,76 @@ function Reciepts() {
             setBuyPrice('');
             setSellPrice('');
             setNotes('');
+            location.reload();
         }).catch(error => {
             alert("An Error Happend Please Wait and Try Again", error);
         });
+    };
+
+    const fetchReciepts = () => {
+        getReciepts(userData, setRecieptsData);
+    };
+
+    useEffect(() => {
+        fetchReciepts();
+    }, []);
+
+    const clearButton = () => {
+        fetchReciepts();
+    };
+
+
+    const editReciept = async (recieptId) => {
+        try {
+            const newAccessToken = await refreshAccessToken();
+
+            await axios.put(`${import.meta.env.VITE_API_URL}/${userData.user_name}/edit-reciepts/`, {
+                ...editRecieptsData,
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            setRecieptsData(recieptsData.map(reciept =>
+                reciept.id === recieptId ? { ...reciept, ...editRecieptsData } : reciept
+            ));
+            setEditRecieptId(null);
+            setEditRecieptsData({
+                type: '',
+                supply: '',
+                countity: '',
+                buy_price: '',
+                sell_price: '',
+                total: '',
+                date: '',
+                notes: '',
+            });
+            fetchReciepts();
+        } catch (error) {
+            console.error('Error saving supply', error);
+            alert("An error happened while saving the supply. Please try again.");
+        }
+    };
+
+    const deleteReciept = async (recieptId) => {
+        try {
+            const newAccessToken = await refreshAccessToken();
+
+            await axios.delete(`${import.meta.env.VITE_API_URL}/${userData.user_name}/edit-reciepts/`, {
+                data: { id: recieptId },
+                headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            setRecieptsData(recieptsData.filter(reciept => reciept.id !== recieptId));
+            fetchReciepts();
+        } catch (error) {
+            console.error('Error deleting supply', error);
+            alert("An error happened while deleting the supply. Please try again.");
+        }
     };
 
 
@@ -281,13 +374,13 @@ function Reciepts() {
                 </div>
             </Card>
 
-            <SearchField ></SearchField>
+            <SearchField onClick={clearButton} value={searchTypesAndSupplies} onChange={hanldeRecieptSearch} ></SearchField>
 
             <Table className='Table'>
                 <TableHeader className='TableHeader'>
                     <TableRow className="Tablehead">
                         <TableHead onClick={navigatetoTypes} style={{ cursor: "pointer" }}>Type</TableHead>
-                        <TableHead>Supply</TableHead>
+                        <TableHead onClick={navigatetoSupplies} style={{ cursor: "pointer" }}>Supply</TableHead>
                         <TableHead>Countity</TableHead>
                         <TableHead>Buy Price</TableHead>
                         <TableHead>Sell Price</TableHead>
@@ -298,7 +391,107 @@ function Reciepts() {
                     </TableRow>
                 </TableHeader>
                 <TableBody className="Tablebody">
-
+                    {recieptsData.map((reciept, index) => (
+                        <TableRow key={index}>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {editRecieptId === reciept.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="text"
+                                        value={editRecieptsData.type}
+                                        onChange={(e) => setEditRecieptsData({ ...editRecieptsData, type: e.target.value })}
+                                    />
+                                ) : (
+                                    reciept.type
+                                )}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {editRecieptId === reciept.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="text"
+                                        value={editRecieptsData.supply}
+                                        onChange={(e) => setEditRecieptsData({ ...editRecieptsData, supply: e.target.value })}
+                                    />
+                                ) : (
+                                    reciept.supply
+                                )}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {editRecieptId === reciept.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="number"
+                                        value={editRecieptsData.countity}
+                                        onChange={(e) => setEditRecieptsData({ ...editRecieptsData, countity: e.target.value })}
+                                    />
+                                ) : (
+                                    reciept.countity
+                                )}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {editRecieptId === reciept.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="number"
+                                        value={editRecieptsData.buy_price}
+                                        onChange={(e) => setEditRecieptsData({ ...editRecieptsData, buy_price: e.target.value })}
+                                    />
+                                ) : (
+                                    reciept.buy_price
+                                )}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {editRecieptId === reciept.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="number"
+                                        value={editRecieptsData.sell_price}
+                                        onChange={(e) => setEditRecieptsData({ ...editRecieptsData, sell_price: e.target.value })}
+                                    />
+                                ) : (
+                                    reciept.sell_price
+                                )}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {reciept.total}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {reciept.date}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {editRecieptId === reciept.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="text"
+                                        value={editRecieptsData.notes}
+                                        onChange={(e) => setEditRecieptsData({ ...editRecieptsData, notes: e.target.value })}
+                                    />
+                                ) : (
+                                    reciept.notes
+                                )}
+                            </TableCell>
+                            <TableCell className='ButtonsCell'>
+                                {editRecieptId === reciept.id ? (
+                                    <Button className='TableButton' onClick={() => editReciept(reciept.id)}>Save</Button>
+                                ) : (
+                                    <Button className='TableButton' onClick={() => {
+                                        setEditRecieptId(reciept.id);
+                                        setEditRecieptsData({
+                                            id: reciept.id,
+                                            type: reciept.type,
+                                            supply: reciept.supply,
+                                            countity: reciept.countity,
+                                            buy_price: reciept.buy_price,
+                                            sell_price: reciept.sell_price,
+                                            notes: reciept.notes
+                                        });
+                                    }}>Edit</Button>
+                                )}
+                                <Button className='TableButton' onClick={() => deleteReciept(reciept.id)}>Delete</Button>
+                            </TableCell>
+                        </TableRow>
+                    ))}
                 </TableBody>
             </Table>
         </BackGround>
