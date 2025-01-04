@@ -113,6 +113,35 @@ const search_Reciepts = async (userData, query, setRecieptsData) => {
     });
 };
 
+const getEmployee = async (userData, setEmployeeData) => {
+    // Refresh the access token
+    const newAccessToken = await refreshAccessToken();
+
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/employ-employees/`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setEmployeeData(Array.isArray(response.data) ? response.data : [])
+    }).catch(error => {
+        alert("An error happened while fetching Employees. Please try again, Or check your internet connection.");
+    });
+};
+
+const searchEmployee = async (userData, query, setEmployeeData) => {
+    const newAccessToken = await refreshAccessToken();
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-employees/${query}`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setEmployeeData(Array.isArray(response.data) ? response.data : [])
+    }).catch(error => {
+    });
+};
+
 
 export {
     getTypes,
@@ -123,4 +152,6 @@ export {
     searchBy_Supplies,
     getReciepts,
     search_Reciepts,
+    getEmployee,
+    searchEmployee,
 };
