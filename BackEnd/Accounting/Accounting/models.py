@@ -356,6 +356,7 @@ def handle_customer_deletion(sender, instance, **kwargs):
 #Creating the Employee Model
 class Employee(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
+    
     employee_name = models.CharField(max_length=50,primary_key=True)
 
     date_of_employment = models.DateField(blank=True,null=True)

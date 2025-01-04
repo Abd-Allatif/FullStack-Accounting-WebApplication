@@ -1,3 +1,4 @@
+from ast import Return
 from urllib import response
 from numpy import double
 import pandas as pd
@@ -466,8 +467,98 @@ def search_Reciepts(request, username, query):
         logger.error(f"SearchTypesAndSupplies error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@api_view(['POST','GET'])
+@permission_classes([IsAuthenticated])
+def employ_Employees (request,username):
+    try:
+        user = User.objects.get(user_name = username)
 
+        if request.method == 'POST':
+            user_data = request.data.get('user')
+            emp_name = request.data.get('emp_name')
+            salary = request.data.get('salary')
+            emp_date = request.data.get('emp_date')
+            if user_data:
+                user_instance = User.objects.get(user_name = user_data)
+                
+                if emp_name:
+                    Employee.objects.create(user=user_instance,employee_name=emp_name,date_of_employment=emp_date,salary=salary)
+                        
+                    return Response({'message': 'Setup successful!'}, status=status.HTTP_200_OK)
+                
+        
+        if request.method == 'GET':
+            employees = Employee.objects.filter(user=user)
+            serializer = EmployeeSerializer(employees, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def edit_employee(request, username):
+    try:
+        user_instance = User.objects.get(user_name=username)
+
+        if request.method == 'PUT':
+            name = request.data.get('emp_name')
+            salary = request.data.get('salary')
+            date = request.data.get('emp_date')
+            edited_employee = request.data.get('new_emp')
+
+            if name:
+                try:
+                    employee_instance = Employee.objects.get(user=user_instance,employee_name=name,)
+                    employee_instance.delete()
+                    employee_instance.employee_name = edited_employee
+                    employee_instance.salary = salary
+                    employee_instance.date_of_employment = date
+                    employee_instance.save()
+                    
+                    return Response({'message': 'Reciept updated successfully!'}, status=status.HTTP_200_OK)
+                except Reciept.DoesNotExist:
+                    return Response({'error': 'Reciept not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Supplies not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if request.method == 'DELETE':
+            employee_to_delete = request.data.get('employee')
+
+            if employee_to_delete:
+                try:
+                    employee_instance = Employee.objects.get(employee_name=employee_to_delete, user=user_instance)
+                    employee_instance.delete()
+                    return Response({'message': 'Reciept deleted successfully!'}, status=status.HTTP_200_OK)
+                except Reciept.DoesNotExist:
+                    return Response({'error': 'Reciept not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Reciept ID not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'error': 'Invalid request method'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"EditReciepts error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_Employee(request, username, query):
+    try:
+        user_instance = User.objects.get(user_name=username)
+        employees = Employee.objects.filter(Q(employee_name__icontains=query) | Q(date_of_employment__icontains=query), user=user_instance)
+        serializer = EmployeeSerializer(employees, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"EditTypes error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
 #--------------------------------------------------------------------------
 # Expoting Data
 

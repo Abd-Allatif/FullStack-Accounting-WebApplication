@@ -65,9 +65,8 @@ MIDDLEWARE = [
 REST_FRAMEWORK = { 
     'DEFAULT_AUTHENTICATION_CLASSES': ( 
         'rest_framework_simplejwt.authentication.JWTAuthentication', 
-        ),
-      }
-
+    ),
+    }
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -90,6 +89,9 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+
+CORS_ALLOW_CREDENTIALS = True
+
 
 CORS_ALLOW_ALL_ORIGINS = True
 

@@ -21,6 +21,9 @@ urlpatterns = [
     path('api/users/<str:username>/edit-supplies/', views.edit_supplies, name='edit_supplies'),
     path('api/users/<str:username>/search/<str:query>', views.search_types_and_supplies, name='search_types_and_supplies'),
     path('api/users/<str:username>/search-supplies/<str:type>/<str:query>', views.search_supplies, name='search_supplies'),
+    path('api/users/<str:username>/employ-employees/', views.employ_Employees, name='employ-employees'),
+    path('api/users/<str:username>/edit-employees/', views.edit_employee, name='edit_employee'),
+    path('api/users/<str:username>/search-employees/<str:query>', views.search_Employee, name='search_employee'),
     path('api/data/export/export-excel/<str:username>/', views.export_all_data_excel, name='export_all_data_excel'),
     path('api/data/export/export-pdf/<str:username>/', views.export_all_data_pdf, name='export_all_data_pdf'),
 
