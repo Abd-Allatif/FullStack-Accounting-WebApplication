@@ -142,6 +142,93 @@ const searchEmployee = async (userData, query, setEmployeeData) => {
     });
 };
 
+const getCustomers = async (userData, setCustomerData) => {
+    // Refresh the access token
+    const newAccessToken = await refreshAccessToken();
+
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/manage-customers/`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setCustomerData(Array.isArray(response.data) ? response.data : [])
+    }).catch(error => {
+        alert("An error happened while fetching Employees. Please try again, Or check your internet connection.");
+    });
+};
+
+const searchCustomer = async (userData, query, setCustomerData) => {
+    const newAccessToken = await refreshAccessToken();
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-customers/${query}/`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setCustomerData(Array.isArray(response.data) ? response.data : [])
+    }).catch(error => {
+    });
+};
+
+const getIncome = async (userData, setIncomeData) => {
+    // Refresh the access token
+    const newAccessToken = await refreshAccessToken();
+
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/manage-income/`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setIncomeData(Array.isArray(response.data) ? response.data : [])
+    }).catch(error => {
+        alert("An error happened while fetching Employees. Please try again, Or check your internet connection.");
+    });
+};
+
+const searchIncome = async (userData, query, setIncomeData) => {
+    const newAccessToken = await refreshAccessToken();
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-income/${query}/`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setIncomeData(Array.isArray(response.data) ? response.data : [])
+    }).catch(error => {
+    });
+};
+
+const getPayment = async (userData, setPaymentData) => {
+    // Refresh the access token
+    const newAccessToken = await refreshAccessToken();
+
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/manage-payment/`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setPaymentData(Array.isArray(response.data) ? response.data : [])
+    }).catch(error => {
+        alert("An error happened while fetching Employees. Please try again, Or check your internet connection.");
+    });
+};
+
+const searchPayment = async (userData, query, setPaymentData) => {
+    const newAccessToken = await refreshAccessToken();
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-payment/${query}/`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setPaymentData(Array.isArray(response.data) ? response.data : [])
+    }).catch(error => {
+    });
+};
+
 
 export {
     getTypes,
@@ -154,4 +241,10 @@ export {
     search_Reciepts,
     getEmployee,
     searchEmployee,
+    getCustomers,
+    searchCustomer,
+    getIncome,
+    searchIncome,
+    getPayment,
+    searchPayment,
 };

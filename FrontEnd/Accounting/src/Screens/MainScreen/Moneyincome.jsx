@@ -1,14 +1,16 @@
 import styled from 'styled-components';
 import axios from 'axios';
-import { useState } from 'react';
+import { useState, useEffect, useCallback,useRef } from 'react';
 import { useNavigate } from 'react-router-dom'
 import Loader from '../../Tools/Loader'
+import { refreshAccessToken } from '../../Tools/authService'
+import { getIncome, debounce, searchIncome, searchCustomer } from '../../Tools/BackendServices'
 import Drawer from '../../Tools/Drawer'
+import { BackGround, Card, InputField, Button, SearchField, TopBar } from '../../Tools/Components'
 import {
     Table,
     TableBody,
     TableCell,
-    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
@@ -16,8 +18,26 @@ import {
 
 function MoneyIncome() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-    
+    const [loading, setLoading] = useState(false);
+    const [moneyFrom, setmoneyFrom] = useState('');
+    const [total, settotal] = useState('');
+    const [incomeDate, setincomeDate] = useState('');
+    const [notes, setnotes] = useState('');
+    const [moneyIncomeData, setmoneyIncomeData] = useState([]);
+    const [moenyIncomeAdded, setmoenyIncomeAdded] = useState('');
+    const [editIncome, seteditIncome] = useState('');
+    const [editIncomeID, seteditIncomeID] = useState(null);
+    const [editDate, setEditDate] = useState('');
+    const [editNotes, setEditNotes] = useState('');
+    const [edittotal, setEdittotal] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [customerData, setcustomerData] = useState([]);
+    const [focusedIndex, setFocusedIndex] = useState(-1);
     const navigate = useNavigate();
+
+    const dropdownRef = useRef(null);
+
+    const userData = JSON.parse(localStorage.getItem('user_data'));
 
     const backToMain = () => {
         navigate("/main");
@@ -29,72 +49,296 @@ function MoneyIncome() {
         }
         setIsDrawerOpen(open);
     };
+
+    const fetchIncome = () => {
+        getIncome(userData, setmoneyIncomeData);
+    }
+
+    useEffect(() => {
+        fetchIncome();
+    }, []);
+
+    const searchFetchIncome = async (query = '') => {
+        searchIncome(userData, query, setmoneyIncomeData);
+    };
+
+    const debouncedMoneyIcnome = useCallback(debounce(searchFetchIncome, 300), []);
+
+    const handleSearchChange = (event) => {
+        const query = event.target.value;
+        setSearchQuery(query);
+        debouncedMoneyIcnome(query);
+    };
+
+
+    const searchfetchCustomer = async (query = '') => {
+        searchCustomer(userData, query, setcustomerData);
+    };
+
+    const debouncedFetchCustomer = useCallback(debounce(searchfetchCustomer, 300), []);
+
+    const handleSearchCustomerChange = (event) => {
+        const query = event.target.value;
+        setmoneyFrom(query);
+        debouncedFetchCustomer(query);
+        if (query == "" || query == null) {
+            setcustomerData([]);
+        }
+    };
+
+    const clear_btn = () => {
+        fetchIncome();
+    }
+
+    const send_data = async (event) => {
+        event.preventDefault();
+        setLoading(true);
+
+        // Refresh the access token
+        const newAccessToken = await refreshAccessToken();
+
+        await axios.post(`${import.meta.env.VITE_API_URL}/${userData.user_name}/manage-income/`, {
+            user: userData.user_name,
+            money_from: moneyFrom,
+            total: total,
+            date: incomeDate,
+            notes: notes,
+        }, {
+            headers: {
+                'Authorization': `Bearer ${newAccessToken}`,
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            setmoenyIncomeAdded(`${moneyFrom} Employed Successfully`);
+            setmoneyIncomeData([...moneyIncomeData, { money_from: moneyFrom, total: total, date: incomeDate, notes: notes }]);
+            setLoading(false);
+            location.reload();
+        }).catch(error => {
+            alert("An Error Happend Please Wait and Try Again");
+            setLoading(false);
+        });
+    };
+
+    const editMoneyIncome = async (id) => {
+        try {
+            const newAccessToken = await refreshAccessToken();
+
+            await axios.put(`${import.meta.env.VITE_API_URL}/${userData.user_name}/edit-income/`, {
+                id: id,
+                money_from: editIncome,
+                total: edittotal,
+                date: editDate,
+                notes: editNotes,
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            seteditIncomeID(null);
+            setmoneyIncomeData([]);
+            fetchIncome();
+        } catch (error) {
+            console.error('Error saving supply', error);
+            alert("An error happened while saving the Employee. Please try again.");
+        }
+    };
+
+    const handleCustomerSelect = (customer) => {
+        setmoneyFrom(customer);
+        setcustomerData([]);
+    };
+
+    const handleKeyDown = (event) => {
+        if (customerData.length > 0) {
+            if (event.key === 'ArrowDown') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex + 1) % customerData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'ArrowUp') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex - 1 + customerData.length) % customerData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'Enter' && focusedIndex >= 0) {
+                handleCustomerSelect(customerData[focusedIndex].customer_name);
+            }
+        }
+    };
+
+    const scrollToItem = (index) => {
+        const dropdown = dropdownRef.current;
+        const item = dropdown?.children[index];
+        if (item) {
+            const itemHeight = item.offsetHeight;
+            const visibleStart = dropdown.scrollTop;
+            const visibleEnd = visibleStart + dropdown.clientHeight;
+
+            const itemStart = item.offsetTop;
+            const itemEnd = itemStart + itemHeight;
+
+            if (itemStart < visibleStart) {
+                dropdown.scrollTop = itemStart;
+            } else if (itemEnd > visibleEnd) {
+                dropdown.scrollTop = itemEnd - dropdown.clientHeight;
+            }
+        }
+    };
+
+    const deleteIncome = async (id) => {
+        try {
+            const newAccessToken = await refreshAccessToken();
+
+            await axios.delete(`${import.meta.env.VITE_API_URL}/${userData.user_name}/edit-income/`, {
+                data: { id: id },
+                headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            setmoneyIncomeData(moneyIncomeData.filter(income => income.id !== editIncomeID));
+            fetchIncome();
+        } catch (error) {
+            console.error('Error deleting supply', error);
+            alert("An error happened while deleting the supply. Please try again.");
+        }
+    };
+
+
+
     return (<StyledWrapper>
-        <header>
-            <div className="TopBar">
-                <button className='Drawerbtn' onClick={toggleDrawer(true)}>
-                    <svg className="DrawerSvg" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="45" height="45" viewBox="0 0 40 40" fill='white'>
-                        <path d="M 4 15 A 2.0002 2.0002 0 1 0 4 19 L 44 19 A 2.0002 2.0002 0 1 0 44 15 L 4 15 z M 4 29 A 2.0002 2.0002 0 1 0 4 33 L 44 33 A 2.0002 2.0002 0 1 0 44 29 L 4 29 z"></path>
-                    </svg>
-                </button>
-                <h2 className='userName'>Money Income</h2>
-                <button className='backbtn' onClick={backToMain}>Back</button>
-            </div>
-        </header>
-        <main>
-            <div className="Container">
-                <Drawer isOpen={isDrawerOpen} toggleDrawer={toggleDrawer} />
-                <div className="ItemsContainer">
-                    <div className="Firstrow">
-                        <div className="field">
-                            <input placeholder='Name' type="text" className="input-field" />
-                        </div>
-                        <div className="field">
-                            <input placeholder='Paid Debt' type="text" className="input-field" />
-                        </div>
-                        <div className="field">
-                            <input placeholder='Notes' type="text" className="input-field" />
-                        </div>
-                    </div>
-                    <div className="Thirdrow">
+        <BackGround className="Container">
+            <TopBar drawerButton_Onclick={toggleDrawer(true)} backButton_Onclick={backToMain} Text="Money Income" />
+            <Drawer isOpen={isDrawerOpen} toggleDrawer={toggleDrawer} />
 
+            <Card className="ItemsContainer">
+                <div className="Firstrow">
+                    <div className="customerField">
+                        <InputField placeholder='Customer Name'
+                            type="text" value={moneyFrom}
+                            onChange={handleSearchCustomerChange}
+                            onKeyDown={handleKeyDown}
+                            className="first-field" />
+                        {customerData.length > 0 && (
+                            moneyFrom && <div className="dropdown" ref={dropdownRef}>
+                                {customerData.map((customer, index) => (
+                                    <div key={index} className={`dropdown-item${index === focusedIndex ? '-focused' : ''}`} onClick={() => handleCustomerSelect(customer.customer_name)}>
+                                        {customer.customer_name}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                    <div className="Fourthrow">
-                        <button className="button1">Submit</button>
-                    </div>
+                    <InputField placeholder='total' type="number" value={total} onChange={(e) => settotal(e.target.value)} className="first-field" />
                 </div>
-                <footer>
-                    <div className='FilterContainer'>
-                        <svg width="35px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M11 6C13.7614 6 16 8.23858 16 11M16.6588 16.6549L21 21M19 11C19 15.4183 15.4183 19 11 19C6.58172 19 3 15.4183 3 11C3 6.58172 6.58172 3 11 3C15.4183 3 19 6.58172 19 11Z" stroke="#d3d3d3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                        <input type="text" className='Search' placeholder='Search for Sell' />
-                        <button className='SearchBtn'>Search</button>
-                        <button className='SearchBtn'>clear</button>
-                    </div>
-                    <Table className='Table'>
-                        <TableHeader className='TableHeader'>
-                            <TableRow className="Tablehead">
-                                <TableHead>Customer Name</TableHead>
-                                <TableHead>Paid Debt</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Notes</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody className="Tablebody">
+                <div className="Secondrow">
+                    <InputField placeholder='Date' type="date" value={incomeDate} onChange={(e) => setincomeDate(e.target.value)} className="first-field" />
+                    <InputField placeholder='Notes' type="text" value={notes} onChange={(e) => setnotes(e.target.value)} className="first-field" />
+                </div>
 
-                        </TableBody>
-                    </Table>
-                </footer>
-            </div>
-        </main>
+                <div className="Thirdrow">
+                    <p style={{ color: 'white' }}>{moenyIncomeAdded}</p>
+                </div>
+
+                <div className="Fourthrow">
+                    <Button className="AddType" onClick={send_data}>Add Income</Button>
+                </div>
+
+                <div style={{ alignSelf: 'center' }}>
+                    {loading && <Loader width='3' height='20' animateHeight='36' />}
+                </div>
+            </Card>
+
+            <SearchField value={searchQuery} onChange={handleSearchChange} onClick={clear_btn} />
+
+            <Table className='Table'>
+                <TableHeader className='TableHeader'>
+                    <TableRow className="Tablehead">
+                        <TableHead>Money From</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Notes</TableHead>
+                        <TableHead>Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody className="Tablebody">
+                    {moneyIncomeData.map((income, index) => (
+                        <TableRow key={index}>
+                            <TableCell style={{ fontSize: '20px', padding: '10px' }}>
+                                {editIncomeID === income.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="text"
+                                        value={editIncome}
+                                        onChange={(e) => seteditIncome(e.target.value)}
+                                    />
+                                ) : (
+                                    income.money_from
+                                )}
+                            </TableCell>
+                            <TableCell style={{ fontSize: '20px', padding: '10px' }}>
+                                {editIncomeID === income.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="text"
+                                        value={edittotal}
+                                        onChange={(e) => setEdittotal(e.target.value)}
+                                    />
+                                ) : (
+                                    income.total
+                                )}
+                            </TableCell>
+                            <TableCell style={{ fontSize: '20px', padding: '10px' }}>
+                                {editIncomeID === income.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="text"
+                                        value={editDate}
+                                        onChange={(e) => setEditDate(e.target.value)}
+                                    />
+                                ) : (
+                                    income.date
+                                )}
+                            </TableCell>
+                            <TableCell style={{ fontSize: '20px', padding: '10px' }}>
+                                {editIncomeID === income.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="text"
+                                        value={editNotes}
+                                        onChange={(e) => setEditNotes(e.target.value)}
+                                    />
+                                ) : (
+                                    income.notes
+                                )}
+                            </TableCell>
+                            <TableCell className='ButtonsCell'>
+                                {editIncomeID === income.id ? (
+                                    <Button className='TableButton' onClick={() => editMoneyIncome(income.id)}>Save</Button>
+                                ) : (
+                                    <Button className='TableButton' onClick={() => {
+                                        seteditIncomeID(income.id);
+                                        seteditIncome(income.money_from);
+                                        setEditDate(income.date);
+                                        setEdittotal(income.total);
+                                        setEditNotes(income.notes)
+                                    }}>Edit</Button>
+                                )}
+                                <Button className='TableButton' onClick={() => deleteIncome(income.id)} >Delete</Button>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </BackGround>
     </StyledWrapper>)
 }
 
 const StyledWrapper = styled.div`
-header{
-    margin-bottom:3em;
-}
+
 
 .Container {
   display: flex;
@@ -102,85 +346,18 @@ header{
   align-items: center;
   justify-content: center;
 
-  width: 100vw;
-  height: 100vh;
-  --s: 37px; /* control the size */
-  
-  overflow-y:auto;  
-
-  --c: #0000, #282828 0.5deg 119.5deg, #0000 120deg;
-  --g1: conic-gradient(from 60deg at 56.25% calc(425% / 6), var(--c));
-  --g2: conic-gradient(from 180deg at 43.75% calc(425% / 6), var(--c));
-  --g3: conic-gradient(from -60deg at 50% calc(175% / 12), var(--c));
-  background: var(--g1), var(--g1) var(--s) calc(1.73 * var(--s)), var(--g2),
-    var(--g2) var(--s) calc(1.73 * var(--s)), var(--g3) var(--s) 0,
-    var(--g3) 0 calc(1.73 * var(--s)) #1e1e1e;
-  background-size: calc(2 * var(--s)) calc(3.46 * var(--s));
-}
-
-.TopBar{
-    display:flex;
-    flex-direction:row;
-
-    position:fixed;
-    top:0;
-    left:0;
-
-    z-index: 1000;
-
-    justify-content:space-between;
-    align-items:center;
-
-    background-color: #171717;
-    padding-bottom: 0.2em;
-    padding-top:0.01em;
-
-    transition: .4s ease-in-out;
-
-    width:100vw;
-    height:65px;
-
-    &.TopBar:hover{
-        transform: scale(1.02);
-        border: 1px solid black;
-    }
-}
-
-.userName{
-    flex-grow: 1;
-    color:white;
-    text-align:center;
-    font-size:20px;
-}
-
-.Drawerbtn{
-    margin-right:1em;    
-    margin-bottom:0.1em;
-
-    padding:1em;
-
-    border:none;
-    
-    background-color: transparent;
-
-    &.Drawerbtn:hover .DrawerSvg{
-        transition: .4s ease;
-        fill: #222222;
-    }
+  height:100vh;
 }
 
 .ItemsContainer{
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    
     padding-left: 1em;
     padding-right: 1em;
     padding-bottom: 0.4em;
 
-    margin-top: 0.3em;
+    margin-top: 5em;
     margin-left: 0.5em;
     margin-right: 0.5em;
+    margin-bottom: 5em;
 
     background-color: hsla(0, 0%, 9%, 0.788);
     backdrop-filter: blur(5px);
@@ -200,10 +377,45 @@ header{
     justify-content:center;
     
     margin-top:1em;
+    margin-bottom:0.8em;
 
     padding:1em;
     height:6em;
    
+    .first-field{
+        margin:1em;
+    }
+
+    .customerField{
+        position: relative;
+    }
+}
+
+.dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #252525;
+    color: white;
+    border: 1px solid #171717;
+    border-radius: 15px;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.dropdown-item {
+    padding: 6px;
+    cursor: pointer;
+}
+
+dropdown-item-focused {
+    background: #444;
+}
+
+.dropdown-item:hover {
+    background: #444;
 }
 
 .Secondrow{
@@ -242,11 +454,25 @@ header{
     height:6em;
 }
 
-.button1{
+.TypesCell{
+    width:50%;
+}
+
+.ButtonsCell{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding-bottom:18px;
+}
+
+.TableButton{
     padding: 0.5em;
-    padding-left: 1.1em;
-    padding-right: 1.1em;
+    padding-left: 2.1em;
+    padding-right: 2.1em;
     border-radius: 5px;
+
+    align-self:center;
+    justify-self:center;
 
     margin-right: 0.5em;
     border: none;
@@ -255,13 +481,14 @@ header{
     
     transition: .4s ease-in-out;
     
-    background-color: #252525;
+    background-color: #171717;
     color: white;
 
-    &.button1:hover{
-        background-color:black;
+    &.TableButton:hover{
+        background-color:red;
     }
 }
+
 
 .backbtn{
     padding: 0.5em;
@@ -284,116 +511,11 @@ header{
     }
 }
 
-
-.field{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5em;
-    
-    border-radius: 25px;
-    
-    padding: 1em;
-    padding-left:2em;
-    padding-right:2em;
-    
-    margin-left:1em;
-    margin-right:1em;
-
-    border: none;
-    outline: none;
-    
-    color: white;
-    background-color: #171717;
-    
-    box-shadow: inset 2px 5px 10px rgb(5, 5, 5);
-
-
-    .input-field {
-        background: none;
-        border: none;
-        outline: none;
-        width: 100%;
-        color: #d3d3d3;
-
-        font-size:15px;
-
-        &.input-field::placeholder{
-        text-align: center;
-        }
-  }
-}
-
-footer{
-    margin-top: 2em;
-    align-self:flex-end;
-}
-
-.FilterContainer{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5em;
-
-    padding: 0.6em;
-    padding-left: 1.5em;
-    
-    width:100vw;
-    height:6vh;
-    
-    border: none;
-    outline: none;
-    
-    color: white;
-    background-color: #171717;
-    
-    
-    box-shadow: inset 2px 5px 10px rgb(5, 5, 5);
-
-
-    .Search{
-    background: none;
-    border: none;
-    outline: none;
-    width: 100%;
-    color: #d3d3d3;
-
-    padding: 0.5em;
-    &.input-field::placeholder{
-        text-align: center;
-    }
-    }
-
-    .SearchBtn{
-        padding: 0.1em;
-        padding-left: 0.4em;
-        padding-right: 0.4em;
-        border-radius: 15px;
-
-        margin-right: 0.5em;
-        border: none;
-    
-        outline: none;
-    
-        transition: .4s ease-in-out;
-    
-        background-color: #252525;
-        color: white;
-
-        &.SearchBtn:hover{
-             background-color: black;
-        }
-    }
-}
-
-
 .Table{
     width:100vw;
     height:auto;
     background:#252525;
     color:white;
-
-    padding-left:1em;
     border-collapse: separate;
     border-spacing: 5px;
 }
@@ -405,98 +527,69 @@ footer{
     font-size:17px;
 }
 
-.Tablebody{
-    overflow-y:auto;
-}
-
-.TableCell{
-    
+.Table-Input-Field{
+    font-size:18px;
+    width:250px;
+    height:40px;
 }
 
 @media (min-width: 768px) and (max-width: 1024px){
-    .userName{
+    .TopBarText{
         margin-left:1em;
         text-align:start;
     }
 
     .ItemsContainer{
-        margin-top: 1em;
+        margin-top: 5em;
         margin-left:0.5em;
         margin-right:0.5em;
         margin-bottom:1.5em;
 
-        padding:0.2em;
+        padding:0.5em;
 
-        width:85vw;
+        width:60vw;
         height: 40vh;
     }
 
-
-    .Firstrow{
-    
-    margin-top:1em;
-
-    padding:0.1em;
-    padding-left: 0.3em;
-
-    height:6em;
+    .Firstrow{   
+        margin-top:1em;
+        padding:0.2em;
+        height:6em;
     }
     
     .Secondrow{
         margin-top:-1em;
     }
-
-.field{
-    
-    padding: 0.8em;
-    
-    margin-left: 0.5em;
-    margin-right:0.5em;
-    margin-top: 0.01em;    
-    }
-  }
+}
   
 
 @media (max-width: 768px) {
-    .userName{
+    .TopBarText{
         margin-left:1em;
         text-align:start;
     }
 
     .ItemsContainer{
-        margin-top: 1em;
+        margin-top: 5em;
         margin-left:0.5em;
         margin-right:0.5em;
         margin-bottom:1.5em;
 
-        padding:0.2em;
+        padding:0.5em;
 
-        width:85vw;
-        height: 40vh;
+        width:60vw;
+        height: 35vh;
     }
 
 
     .Firstrow{
-    
-    margin-top:1em;
-
-    padding:0.1em;
-    padding-left: 0.3em;
-
-    height:6em;
+        margin-top:1em;
+        padding:0.2em;
+        height:6em;
     }
     
     .Secondrow{
         margin-top:-1em;
-    }
-
-.field{
-    
-    padding: 0.8em;
-    
-    margin-left: 0.5em;
-    margin-right:0.5em;
-    margin-top: 0.01em;    
     }
 }  
 `;
