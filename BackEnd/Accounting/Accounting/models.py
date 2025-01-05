@@ -574,9 +574,9 @@ class MoneyIncome(models.Model):
     # Money Comming from
     money_from = models.ForeignKey(CustomerName,on_delete=models.CASCADE,null=True,blank=True)
     # Total Value Incoming
-    total = models.IntegerField()
+    total = models.IntegerField(default=0)
     # Date
-    date = models.DateField(auto_now=True)
+    date = models.DateField(null=True,blank=True)
     # notes
     notes = models.CharField(max_length=400,null=True,blank=True)
 
@@ -645,9 +645,9 @@ class Payment(models.Model):
     # Money Comming from
     money_for = models.CharField(max_length=250)
     # Total Value Incoming
-    total = models.IntegerField()
+    total = models.IntegerField(default=0)
     # Date
-    date = models.DateField(auto_now=True)
+    date = models.DateField(null=True,blank=True)
     # notes
     notes = models.CharField(max_length=400,null=True,blank=True)
 

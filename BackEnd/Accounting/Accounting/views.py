@@ -559,6 +559,281 @@ def search_Employee(request, username, query):
         logger.error(f"EditTypes error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+
+@api_view(['POST','GET'])
+@permission_classes([IsAuthenticated])
+def manage_customers(request,username):
+    try:
+        user = User.objects.get(user_name = username)
+
+        if request.method == 'POST':
+            customer = request.data.get('customer')
+            user_data = request.data.get('user')
+
+            if customer and user_data:
+                user_instance = User.objects.get(user_name = user_data)
+                CustomerName.objects.create(customer_name=customer,user = user_instance)
+
+            return Response({'message': 'Customer Added successfully!'}, status=status.HTTP_200_OK)
+
+        if request.method == 'GET':
+            customer = CustomerName.objects.filter(user=user)
+            serializer = CustomerNameSerializer(customer, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'})
+    except Exception as e:
+        logger.error(f"SetupAccount error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def edit_customers(request, username):
+    try:
+        user_instance = User.objects.get(user_name=username)
+
+        if request.method == 'PUT':
+            old_customer = request.data.get('old_customer')
+            new_customer = request.data.get('new_customer')
+
+            if old_customer and new_customer:
+                try:
+                    customer_instance = CustomerName.objects.get(customer_name=old_customer, user=user_instance)
+                    old_debt = customer_instance.total_debt
+                    customer_instance.delete()
+                    CustomerName.objects.create(user = user_instance,customer_name = new_customer,total_debt = old_debt)
+                    return Response({'message': 'Customer updated successfully!'}, status=status.HTTP_200_OK)
+                except CustomerName.DoesNotExist:
+                    return Response({'error': 'Customer not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        elif request.method == 'DELETE':
+            customer_to_delete = request.data.get('customer')
+
+            if customer_to_delete:
+                try:
+                    customer_instance = CustomerName.objects.get(customer_name=customer_to_delete, user=user_instance)
+                    customer_instance.delete()
+                    return Response({'message': 'Customer deleted successfully!'}, status=status.HTTP_200_OK)
+                except CustomerName.DoesNotExist:
+                    return Response({'error': 'Customer not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"EditTypes error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_customers(request, username, customer):
+    try:
+        user_instance = User.objects.get(user_name=username)
+        customer = CustomerName.objects.filter(Q(customer_name__icontains=customer), user=user_instance)
+        serializer = CustomerNameSerializer(customer, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"EditTypes error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['POST','GET'])
+@permission_classes([IsAuthenticated])
+def manage_Income (request,username):
+    try:
+        user = User.objects.get(user_name = username)
+
+        if request.method == 'POST':
+            user_data = request.data.get('user')
+            money_from = request.data.get('money_from')
+            total = request.data.get('total')
+            date = request.data.get('date')
+            notes = request.data.get('notes')
+
+            if user_data:
+                user_instance = User.objects.get(user_name = user_data)
+                
+                if money_from:
+                    MoneyIncome.objects.create(user=user_instance,money_from=money_from,total=total,date=date,notes=notes)
+                        
+                    return Response({'message': 'Setup successful!'}, status=status.HTTP_200_OK)
+                
+        
+        if request.method == 'GET':
+            income = MoneyIncome.objects.filter(user=user)
+            serializer = MoneyIncomeSerializer(income, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def edit_Income(request, username):
+    try:
+        user_instance = User.objects.get(user_name=username)
+
+        if request.method == 'PUT':
+            id = request.data.get('id')
+            money_from = request.data.get('money_from')
+            total = request.data.get('total')
+            date = request.data.get('date')
+            notes = request.data.get('notes')
+
+            if id:
+                try:
+                    income_instace = MoneyIncome.objects.get(user=user_instance,id=id)
+                    income_instace.delete()
+                    customer_instance = CustomerName.objects.get(user=user_instance,customer_name=money_from)
+                    income_instace.money_from = customer_instance
+                    income_instace.total = total
+                    income_instace.date = date
+                    income_instace.notes = notes
+                    income_instace.save()
+                    
+                    return Response({'message': 'Reciept updated successfully!'}, status=status.HTTP_200_OK)
+                except Reciept.DoesNotExist:
+                    return Response({'error': 'Reciept not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Supplies not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if request.method == 'DELETE':
+            income_to_delete = request.data.get('id')
+
+            if income_to_delete:
+                try:
+                    income_instace = MoneyIncome.objects.get(id=income_to_delete, user=user_instance)
+                    income_instace.delete()
+                    return Response({'message': 'Reciept deleted successfully!'}, status=status.HTTP_200_OK)
+                except Reciept.DoesNotExist:
+                    return Response({'error': 'Reciept not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Reciept ID not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'error': 'Invalid request method'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"EditReciepts error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_Income(request, username, query):
+    try:
+        user_instance = User.objects.get(user_name=username)
+        customer = CustomerName.objects.filter(customer_name__icontains=query,user=user_instance)
+
+        income = MoneyIncome.objects.filter(Q(money_from__in=customer), user=user_instance)
+        serializer = MoneyIncomeSerializer(income, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"EditTypes error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['POST','GET'])
+@permission_classes([IsAuthenticated])
+def manage_payment (request,username):
+    try:
+        user = User.objects.get(user_name = username)
+
+        if request.method == 'POST':
+            user_data = request.data.get('user')
+            money_for = request.data.get('money_for')
+            total = int(request.data.get('total'))
+            date = request.data.get('date')
+            notes = request.data.get('notes')
+
+            if user_data:
+                user_instance = User.objects.get(user_name = user_data)
+                
+                if money_for:
+                    Payment.objects.create(user=user_instance,money_for=money_for,total=total,date=date,notes=notes)
+                        
+                    return Response({'message': 'Setup successful!'}, status=status.HTTP_200_OK)
+                
+        
+        if request.method == 'GET':
+            payment = Payment.objects.filter(user=user)
+            serializer = PaymentSerializer(payment, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def edit_payment(request, username):
+    try:
+        user_instance = User.objects.get(user_name=username)
+
+        if request.method == 'PUT':
+            id = request.data.get('id')
+            money_for = request.data.get('money_for')
+            total = int(request.data.get('total'))
+            date = request.data.get('date')
+            notes = request.data.get('notes')
+
+            if id:
+                try:
+                    payment_instance = Payment.objects.get(user=user_instance,id=id)
+                    payment_instance.delete()
+                    payment_instance.money_for = money_for
+                    payment_instance.total = total
+                    payment_instance.date = date
+                    payment_instance.notes = notes
+                    payment_instance.save()
+                    
+                    return Response({'message': 'Reciept updated successfully!'}, status=status.HTTP_200_OK)
+                except Reciept.DoesNotExist:
+                    return Response({'error': 'Reciept not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Supplies not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if request.method == 'DELETE':
+            payment_to_delete = request.data.get('id')
+
+            if payment_to_delete:
+                try:
+                    income_instace = Payment.objects.get(id=payment_to_delete, user=user_instance)
+                    income_instace.delete()
+                    return Response({'message': 'Reciept deleted successfully!'}, status=status.HTTP_200_OK)
+                except Reciept.DoesNotExist:
+                    return Response({'error': 'Reciept not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Reciept ID not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'error': 'Invalid request method'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"EditReciepts error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_payment(request, username, query):
+    try:
+        user_instance = User.objects.get(user_name=username)
+        payment = Payment.objects.filter(Q(money_for__icontains=query), user=user_instance)
+        serializer = PaymentSerializer(payment, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"EditTypes error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
 #--------------------------------------------------------------------------
 # Expoting Data
 
