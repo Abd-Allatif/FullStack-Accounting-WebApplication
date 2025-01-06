@@ -1,126 +1,542 @@
 import styled from 'styled-components';
 import axios from 'axios';
-import { useState } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'
+import { refreshAccessToken } from '../../Tools/authService'
+import {
+    debounce, searchCustomer,
+    searchBy_only_Supplies, getCustomerSell,search_CustomerSells
+} from '../../Tools/BackendServices'
 import Loader from '../../Tools/Loader'
 import Drawer from '../../Tools/Drawer'
 import {
     Table,
     TableBody,
     TableCell,
-    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
 } from "../../Tools/TableComponent"
+import { BackGround, Card, InputField, Button, SearchField, TopBar } from '../../Tools/Components'
 
 function SellCustomer() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [searchCustomers, setSearchCustomers] = useState("");
+    const [customerData, setcustomerData] = useState([]);
+    const [searchSupplies, setSearchSupplies] = useState("");
+    const [suppliesData, setSuppliesData] = useState([]);
+    const [focusedIndex, setFocusedIndex] = useState(-1);
+    const [countity, setCountity] = useState('');
+    const [price, setPrice] = useState('');
+    const [debt, setdebt] = useState('');
+    const [paid, setPaid] = useState('');
+    const [date, setDate] = useState('');
+    const [notes, setNotes] = useState('');
+    const [sellCustomerAdded, setsellCustomerAdded] = useState('');
+    const [sellCustomerData, setsellCustomerData] = useState([{
+        customer_name: '',
+        date_of_buying: '',
+        supply: '',
+        price: '',
+        countity: '',
+        total: '',
+        debt: '',
+        paid: '',
+        notes: '',
+    }]);
+    const [editSellCustomerID, seteditSellCustomerID] = useState(null);
+    const [editsellCustomerData, setEditsellCustomerData] = useState({
+        id: '',
+        customer_name: '',
+        date_of_buying: '',
+        supply: '',
+        price: '',
+        countity: '',
+        total: '',
+        debt: '',
+        paid: '',
+        notes: '',
+    });
+    const [searchCustomersAndSupplies, setsearchCustomersAndSupplies] = useState('');
+
+    const userData = JSON.parse(localStorage.getItem('user_data'));
 
     const navigate = useNavigate();
+
+    const dropdownRef = useRef(null);
 
     const backToMain = () => {
         navigate("/main");
     }
+
+    const navigatetoTypes = () => {
+        navigate("/main/customers");
+    };
+
+    const navigatetoSupplies = () => {
+        navigate("/main/supplies");
+    };
 
     const toggleDrawer = (open) => (event) => {
         if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
             return;
         }
         setIsDrawerOpen(open);
+    }
+
+    const searchForCustomer = async (query = '') => {
+        searchCustomer(userData, query, setcustomerData);
     };
+
+    const debouncedFetchCustomer = useCallback(debounce(searchForCustomer, 300), []);
+
+    const handleSearchCustomers = (event) => {
+        const query = event.target.value;
+        setSearchCustomers(query);
+        debouncedFetchCustomer(query);
+        if (query == "" || query == null) {
+            setcustomerData([]);
+        }
+    };
+
+    const handleCustomerSelect = (customer) => {
+        setSearchCustomers(customer);
+        setcustomerData([]);
+    };
+
+    const searchForSupplies = async (query = '') => {
+        searchBy_only_Supplies(userData, query, setSuppliesData);
+    };
+
+    const debouncedFetchSupplies = useCallback(debounce(searchForSupplies, 300), []);
+
+    const handleSearchSupplies = (event) => {
+        const query = event.target.value;
+        setSearchSupplies(query);
+        debouncedFetchSupplies(query);
+        if (query == "" || query == null) {
+            setSuppliesData([]);
+        }
+    };
+
+    const handleSuppliesSelect = (supply) => {
+        setSearchSupplies(supply);
+        setSuppliesData([]);
+    };
+
+    const handleCustomerKeyDown = (event) => {
+        if (customerData.length > 0) {
+            if (event.key === 'ArrowDown') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex + 1) % customerData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'ArrowUp') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex - 1 + customerData.length) % customerData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'Enter' && focusedIndex >= 0) {
+                handleCustomerSelect(customerData[focusedIndex].customer_name);
+            }
+        }
+    };
+
+    const handleSuppliesKeyDown = (event) => {
+        if (suppliesData.length > 0) {
+            if (event.key === 'ArrowDown') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex + 1) % suppliesData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'ArrowUp') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex - 1 + suppliesData.length) % suppliesData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'Enter' && focusedIndex >= 0) {
+                handleSuppliesSelect(suppliesData[focusedIndex].supply_name);
+            }
+        }
+    };
+
+    const scrollToItem = (index) => {
+        const dropdown = dropdownRef.current;
+        const item = dropdown?.children[index];
+        if (item) {
+            const itemHeight = item.offsetHeight;
+            const visibleStart = dropdown.scrollTop;
+            const visibleEnd = visibleStart + dropdown.clientHeight;
+
+            const itemStart = item.offsetTop;
+            const itemEnd = itemStart + itemHeight;
+
+            if (itemStart < visibleStart) {
+                dropdown.scrollTop = itemStart;
+            } else if (itemEnd > visibleEnd) {
+                dropdown.scrollTop = itemEnd - dropdown.clientHeight;
+            }
+        }
+    };
+
+    const searchForCustomerSell = async (query = '') => {
+        search_CustomerSells(userData, query, setsellCustomerData);
+    };
+
+    const debouncedFetchCustomerSell = useCallback(debounce(searchForCustomerSell, 300), []);
+
+    const handleSearchCustomersSells = (event) => {
+        const query = event.target.value;
+        setsearchCustomersAndSupplies(query);
+        debouncedFetchCustomerSell(query);
+        if (query == "" || query == null) {
+            setsellCustomerData([]);
+        }
+    };
+
+    const send_data = async (event) => {
+        event.preventDefault();
+
+        // Refresh the access token
+        const newAccessToken = await refreshAccessToken();
+
+        await axios.post(`${import.meta.env.VITE_API_URL}/${userData.user_name}/sell-customer/`, {
+            user: userData.user_name,
+            customer_name: searchCustomers,
+            date_of_buying: date,
+            supply: searchSupplies,
+            price: price,
+            countity: countity,
+            debt: debt,
+            paid: paid,
+            notes: notes,
+        }, {
+            headers: {
+                'Authorization': `Bearer ${newAccessToken}`,
+                'Content-Type': 'application/json',
+            }
+        }).then(response => {
+            setsellCustomerAdded(`${searchSupplies} Sold Successfully`);
+            setsellCustomerData([...sellCustomerData, {
+                customer_name: searchCustomers,
+                date_of_buying: date,
+                supply: searchSupplies,
+                price: price,
+                countity: countity,
+                debt: debt,
+                paid: paid,
+                notes: notes,
+            }])
+            setSearchCustomers('');
+            setSearchSupplies('');
+            setCountity('');
+            setPrice('');
+            setdebt('');
+            setPaid('');
+            setDate('');
+            setNotes('');
+            location.reload();
+        }).catch(error => {
+            alert("An Error Happend Please Wait and Try Again", error);
+        });
+    };
+
+    const fetchCustomerSell = () => {
+        getCustomerSell(userData, setsellCustomerData);
+    };
+
+    useEffect(() => {
+        fetchCustomerSell();
+    }, []);
+
+    const clearButton = () => {
+        fetchCustomerSell();
+    };
+
+
+    const editSellCustomer = async (customerID) => {
+        try {
+            const newAccessToken = await refreshAccessToken();
+
+            await axios.put(`${import.meta.env.VITE_API_URL}/${userData.user_name}/edit-customer-sell/`, {
+                ...editsellCustomerData,
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            setsellCustomerData(sellCustomerData.map(customer =>
+                customer.id === customerID ? { ...customer, ...editsellCustomerData } : customer
+            ));
+            seteditSellCustomerID(null);
+            setEditsellCustomerData({
+                id: '',
+                customer_name: '',
+                date_of_buying: '',
+                supply: '',
+                price: '',
+                countity: '',
+                total: '',
+                debt: '',
+                paid: '',
+                notes: '',
+            });
+            fetchCustomerSell();
+        } catch (error) {
+            console.error('Error saving supply', error);
+            alert("An error happened while saving the supply. Please try again.");
+        }
+    };
+
+    const deleteCustomerSell = async (customerID) => {
+        try {
+            const newAccessToken = await refreshAccessToken();
+
+            await axios.delete(`${import.meta.env.VITE_API_URL}/${userData.user_name}/edit-customer-sell/`, {
+                data: { id: customerID },
+                headers: {
+                    'Authorization': `Bearer ${newAccessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            setsellCustomerData(sellCustomerData.filter(customer => customer.id !== customerID));
+            fetchCustomerSell();
+        } catch (error) {
+            console.error('Error deleting supply', error);
+            alert("An error happened while deleting the supply. Please try again.");
+        }
+    };
+
+
     return (<StyledWrapper>
-        <header>
-            <div className="TopBar">
-                <button className='Drawerbtn' onClick={toggleDrawer(true)}>
-                    <svg className="DrawerSvg" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="45" height="45" viewBox="0 0 40 40" fill='white'>
-                        <path d="M 4 15 A 2.0002 2.0002 0 1 0 4 19 L 44 19 A 2.0002 2.0002 0 1 0 44 15 L 4 15 z M 4 29 A 2.0002 2.0002 0 1 0 4 33 L 44 33 A 2.0002 2.0002 0 1 0 44 29 L 4 29 z"></path>
-                    </svg>
-                </button>
-                <h2 className='userName'>Sell Customer</h2>
-                <button className='backbtn' onClick={backToMain}>Back</button>
-            </div>
-        </header>
-        <main>
-            <div className="Container">
-                <Drawer isOpen={isDrawerOpen} toggleDrawer={toggleDrawer} />
-                <div className="ItemsContainer">
-                    <div className="Firstrow">
-                        <div className="field">
-                            <input placeholder='Name' type="text" className="input-field" />
-                        </div>
-                        <div className="field">
-                            <input placeholder='Supply' type="number" className="input-field" />
-                        </div>
-                        <div className="field">
-                            <input placeholder='Countity' type="number" className="input-field" />
-                        </div>
+        <BackGround className="Container">
+            <TopBar drawerButton_Onclick={toggleDrawer(true)} backButton_Onclick={backToMain} Text="Sell Customer" />
+            <Drawer isOpen={isDrawerOpen} toggleDrawer={toggleDrawer} />
+
+            <Card className="ItemsContainer">
+                <div className="Firstrow">
+                    <div className="typeField">
+                        <InputField
+                            className="FirstrowField"
+                            placeholder='Customer'
+                            type="text"
+                            value={searchCustomers}
+                            onChange={handleSearchCustomers}
+                            onKeyDown={handleCustomerKeyDown}
+                        />
+                        {
+                            searchCustomers && <>
+                                {customerData.length > 0 && (
+                                    searchCustomers && <div className="dropdown" ref={dropdownRef}>
+                                        {customerData.map((customer, index) => (
+                                            <div key={index} className={`dropdown-item${index === focusedIndex ? '-focused' : ''}`} onClick={() => hancustomerSelect(customer.customer_name)}>
+                                                {customer.customer_name}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        }
                     </div>
-                    <div className="Secondrow">
-                        <div className="field">
-                            <input placeholder='Price' type="text" className="input-field" />
-                        </div>
-                        <div className="field">
-                            <input placeholder='Total' type="text" className="input-field" />
-                        </div>
-                        <div className="field">
-                            <input placeholder='Debt' type="text" className="input-field" />
-                        </div>
-                    </div>
-                    <div className="Thirdrow">
-                        <div className="field">
-                            <input placeholder='Paid' type="text" className="input-field" />
-                        </div>
-                        <div className="field">
-                            <input placeholder='Notes' type="text" className="input-field" />
-                        </div>
-                    </div>
-                    <div className="Fourthrow">
-                        <button className="button1">Submit</button>
+                    <div className="supplyField">
+                        <InputField
+                            className="FirstrowField"
+                            placeholder='Supply'
+                            type="text"
+                            value={searchSupplies}
+                            onChange={handleSearchSupplies}
+                            onKeyDown={handleSuppliesKeyDown} />
+                        {
+                            searchSupplies && <>
+                                {suppliesData.length > 0 && (
+                                    searchSupplies && <div className="dropdown" ref={dropdownRef}>
+                                        {suppliesData.map((supply, index) => (
+                                            <div key={index} className={`dropdown-item${index === focusedIndex ? '-focused' : ''}`} onClick={() => handleSuppliesSelect(supply.supply_name)}>
+                                                {supply.supply_name}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        }
                     </div>
                 </div>
-                <footer>
-                    <div className='FilterContainer'>
-                        <svg width="35px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M11 6C13.7614 6 16 8.23858 16 11M16.6588 16.6549L21 21M19 11C19 15.4183 15.4183 19 11 19C6.58172 19 3 15.4183 3 11C3 6.58172 6.58172 3 11 3C15.4183 3 19 6.58172 19 11Z" stroke="#d3d3d3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                        <input type="text" className='Search' placeholder='Search for Sell' />
-                        <button className='SearchBtn'>Search</button>
-                        <button className='SearchBtn'>clear</button>
-                    </div>
-                    <Table className='Table'>
-                        <TableHeader className='TableHeader'>
-                            <TableRow className="Tablehead">
-                                <TableHead>Name</TableHead>
-                                <TableHead>Supply</TableHead>
-                                <TableHead>Countity</TableHead>
-                                <TableHead>Price</TableHead>
-                                <TableHead>Total</TableHead>
-                                <TableHead>Debt</TableHead>
-                                <TableHead>Paid</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Notes</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody className="Tablebody">
 
-                        </TableBody>
-                        <TableFooter>
-                            <TableRow>
-                                <TableCell>Total Sells:</TableCell>
-                                <TableCell >0</TableCell>
-                            </TableRow>
-                        </TableFooter>
-                    </Table>
-                </footer>
-            </div>
-        </main>
-    </StyledWrapper>)
+                <div className="Secondrow">
+                    <div className="CountityField">
+                        <InputField placeholder='Countity' type="number" className="Countity" value={countity} onChange={(e) => setCountity(e.target.value)} />
+                    </div>
+                    <InputField placeholder='Price' type="number" className="SecondrowField" value={price} onChange={(e) => setPrice(e.target.value)} />
+                    <InputField placeholder='Debt' type="number" className="SecondrowField" value={debt} onChange={(e) => setdebt(e.target.value)} />
+                </div>
+
+                <div className="Thirdrow">
+                    <InputField placeholder="Paid" type="Text" className="ThirdrowField" value={paid} onChange={(e) => setPaid(e.target.value)} />
+                    <InputField placeholder="Date" type="date" className="ThirdrowField" value={date} onChange={(e) => setDate(e.target.value)} />
+                </div>
+
+                <div className="Thirdrow">
+                    <InputField placeholder="Notes" type="Text" className="ThirdrowField" value={notes} onChange={(e) => setNotes(e.target.value)} />
+                </div>
+
+                <div className="ForthRow">
+                    <p style={{ color: 'white' }}>{sellCustomerAdded}</p>
+                </div>
+
+                <div className="FifthRow">
+                    <Button onClick={send_data} >Sell Customer</Button>
+                </div>
+            </Card>
+
+            <SearchField onClick={clearButton} value={searchCustomersAndSupplies} onChange={handleSearchCustomersSells} ></SearchField>
+
+            <Table className='Table'>
+                <TableHeader className='TableHeader'>
+                    <TableRow className="Tablehead">
+                        <TableHead onClick={navigatetoTypes} style={{ cursor: "pointer" }}>Customer</TableHead>
+                        <TableHead onClick={navigatetoSupplies} style={{ cursor: "pointer" }}>Supply</TableHead>
+                        <TableHead>Countity</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Debt</TableHead>
+                        <TableHead>Paid</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Notes</TableHead>
+                        <TableHead>Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody className="Tablebody">
+                    {sellCustomerData.map((customer, index) => (
+                        <TableRow key={index}>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {editSellCustomerID === customer.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="text"
+                                        value={editsellCustomerData.customer_name}
+                                        onChange={(e) => setEditsellCustomerData({ ...editsellCustomerData, customer_name: e.target.value })}
+                                    />
+                                ) : (
+                                    customer.customer_name
+                                )}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {editSellCustomerID === customer.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="text"
+                                        value={editsellCustomerData.supply}
+                                        onChange={(e) => setEditsellCustomerData({ ...editsellCustomerData, supply: e.target.value })}
+                                    />
+                                ) : (
+                                    customer.supply
+                                )}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {editSellCustomerID === customer.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="number"
+                                        value={editsellCustomerData.countity}
+                                        onChange={(e) => setEditsellCustomerData({ ...editsellCustomerData, countity: e.target.value })}
+                                    />
+                                ) : (
+                                    customer.countity
+                                )}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {editSellCustomerID === customer.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="number"
+                                        value={editsellCustomerData.price}
+                                        onChange={(e) => setEditsellCustomerData({ ...editsellCustomerData, price: e.target.value })}
+                                    />
+                                ) : (
+                                    customer.price
+                                )}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {customer.total}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {editSellCustomerID === customer.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="number"
+                                        value={editsellCustomerData.debt}
+                                        onChange={(e) => setEditsellCustomerData({ ...editsellCustomerData, debt: e.target.value })}
+                                    />
+                                ) : (
+                                    customer.debt
+                                )}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {editSellCustomerID === customer.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="number"
+                                        value={editsellCustomerData.paid}
+                                        onChange={(e) => setEditsellCustomerData({ ...editsellCustomerData, paid: e.target.value })}
+                                    />
+                                ) : (
+                                    customer.paid
+                                )}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {customer.date_of_buying}
+                            </TableCell>
+                            <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
+                                {editSellCustomerID === customer.id ? (
+                                    <InputField
+                                        className="Table-Input-Field"
+                                        type="text"
+                                        value={editsellCustomerData.notes}
+                                        onChange={(e) => setEditsellCustomerData({ ...editsellCustomerData, notes: e.target.value })}
+                                    />
+                                ) : (
+                                    customer.notes
+                                )}
+                            </TableCell>
+                            <TableCell className='ButtonsCell'>
+                                {editSellCustomerID === customer.id ? (
+                                    <Button className='TableButton' onClick={() => editSellCustomer(customer.id)}>Save</Button>
+                                ) : (
+                                    <Button className='TableButton' onClick={() => {
+                                        seteditSellCustomerID(customer.id);
+                                        setEditsellCustomerData({
+                                            id: customer.id,
+                                            customer_name: customer.customer_name,
+                                            date_of_buying: customer.date_of_buying,
+                                            supply: customer.supply,
+                                            price: customer.price,
+                                            countity: customer.countity,
+                                            total: customer.total,
+                                            debt: customer.debt,
+                                            paid: customer.paid,
+                                            notes: customer.notes,
+                                        });
+                                    }}>Edit</Button>
+                                )}
+                                <Button className='TableButton' onClick={() => deleteCustomerSell(customer.id)}>Delete</Button>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </BackGround>
+    </StyledWrapper >)
 }
 
 const StyledWrapper = styled.div`
 header{
-    margin-bottom:3em;
+    margin-bottom:3.7em;
 }
 
 .Container {
@@ -129,97 +545,19 @@ header{
   align-items: center;
   justify-content: center;
 
-  width: 100vw;
-  height: 100vh;
-  --s: 37px; /* control the size */
-  
-  overflow-y:auto;  
-
-  --c: #0000, #282828 0.5deg 119.5deg, #0000 120deg;
-  --g1: conic-gradient(from 60deg at 56.25% calc(425% / 6), var(--c));
-  --g2: conic-gradient(from 180deg at 43.75% calc(425% / 6), var(--c));
-  --g3: conic-gradient(from -60deg at 50% calc(175% / 12), var(--c));
-  background: var(--g1), var(--g1) var(--s) calc(1.73 * var(--s)), var(--g2),
-    var(--g2) var(--s) calc(1.73 * var(--s)), var(--g3) var(--s) 0,
-    var(--g3) 0 calc(1.73 * var(--s)) #1e1e1e;
-  background-size: calc(2 * var(--s)) calc(3.46 * var(--s));
-}
-
-.TopBar{
-    display:flex;
-    flex-direction:row;
-
-    position:fixed;
-    top:0;
-    left:0;
-
-    z-index: 1000;
-
-    justify-content:space-between;
-    align-items:center;
-
-    background-color: #171717;
-    padding-bottom: 0.2em;
-    padding-top:0.01em;
-
-    transition: .4s ease-in-out;
-
-    width:100vw;
-    height:65px;
-
-    &.TopBar:hover{
-        transform: scale(1.02);
-        border: 1px solid black;
-    }
-}
-
-.userName{
-    flex-grow: 1;
-    color:white;
-    text-align:center;
-    font-size:20px;
-}
-
-.Drawerbtn{
-    margin-right:1em;    
-    margin-bottom:0.1em;
-
-    padding:1em;
-
-    border:none;
-    
-    background-color: transparent;
-
-    &.Drawerbtn:hover .DrawerSvg{
-        transition: .4s ease;
-        fill: #222222;
-    }
+  height:100vh;
 }
 
 .ItemsContainer{
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    
-    padding: 2em;
-    padding-left: 1em;
-    padding-right: 1em;
-    padding-bottom: 0.4em;
+        margin-top: 1em;
+        margin-left:0.5em;
+        margin-right:0.5em;
+        margin-bottom:2em;
 
-    margin-top: 1.5em;
-    margin-left: 0.5em;
-    margin-right: 0.5em;
-    margin-bottom: 1em;
+        padding:0.5em;
 
-    background-color: hsla(0, 0%, 9%, 0.788);
-    backdrop-filter: blur(5px);
-    opacity:1;
-    border-radius: 25px;
-
-    width:50vw;
-    height: 60vh;
-
-    box-shadow: inset 2px 5px 10px rgb(5, 5, 5);
+        width:43vw;
+        height: 55vh;
 }
 
 .Firstrow{
@@ -229,13 +567,98 @@ header{
     justify-content:center;
     
     margin-top:1em;
-
     padding:1em;
-    height:6em;
-   
+
+    height:6em;   
+
+    .FirstrowField{
+        margin-left:0.5em;
+        margin-right:0.5em;
+        width:16em;
+    }
+
+    .typeField{
+        position: relative;
+    }
+
+    .supplyField{
+        position: relative;
+    }
+}
+
+.dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #252525;
+    color: white;
+    border: 1px solid #171717;
+    border-radius: 15px;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.dropdown-item {
+    padding: 6px;
+    cursor: pointer;
+}
+
+dropdown-item-focused {
+    background: #444;
+}
+
+.dropdown-item:hover {
+    background: #444;
 }
 
 .Secondrow{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    margin-top:-2em;
+
+    .CountityField{
+        display:flex;
+        flex-direction:row;
+
+        align-items:center;
+        justify-content:center;
+
+        padding-right:-1em;
+        padding-left:1em;
+
+        margin-left:0.5em;
+        
+        .Countity{
+            width:8em;
+            
+            padding-top:0.7em;
+
+            margin-top:0.7em;
+            margin-right:1em;
+            margin-left:0.3em;
+        }
+
+        .UnitDropDown{
+            position: relative;
+        }
+    }
+
+    .SecondrowField{
+        padding-top:0.7em;
+
+        margin-top:0.5em;
+        margin-left: 0.2em;       
+        margin-right: 1.5em;       
+    }
+
+}
+
+
+.ForthRow{
     display:flex;
     felx-direction:row;
     align-items:center;
@@ -247,34 +670,33 @@ header{
     height:6em;
 }
 
-.Thirdrow{
+.FifthRow{
     display:flex;
     felx-direction:row;
     align-items:center;
     justify-content:center;
     
-    margin-top:-1.9em;
+    margin-top:-3em;
 
     padding:1em;
     height:6em;
 }
 
-.Fourthrow{
+.TypesCell{
+    width:50%;
+}
+
+.ButtonsCell{
     display:flex;
-    felx-direction:row;
     align-items:center;
     justify-content:center;
-    
-    margin-top:-1.5em;
-
-    padding:1em;
-    height:6em;
+    padding-bottom:15px;
 }
 
-.button1{
+.TableButton{
     padding: 0.5em;
-    padding-left: 1.1em;
-    padding-right: 1.1em;
+    padding-left: 2.1em;
+    padding-right: 2.1em;
     border-radius: 5px;
 
     margin-right: 0.5em;
@@ -284,11 +706,11 @@ header{
     
     transition: .4s ease-in-out;
     
-    background-color: #252525;
+    background-color: #171717;
     color: white;
 
-    &.button1:hover{
-        background-color:black;
+    &.TableButton:hover{
+        background-color:red;
     }
 }
 
@@ -313,115 +735,11 @@ header{
     }
 }
 
-.field{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5em;
-    
-    border-radius: 25px;
-    
-    padding: 0.6em;
-    padding-left:2em;
-    padding-right:2em;
-    
-    margin-left:1em;
-    margin-right:1em;
-
-    border: none;
-    outline: none;
-    
-    color: white;
-    background-color: #171717;
-    
-    box-shadow: inset 2px 5px 10px rgb(5, 5, 5);
-
-
-    .input-field {
-        background: none;
-        border: none;
-        outline: none;
-        width: 100%;
-        color: #d3d3d3;
-
-        font-size:16px;
-
-        &.input-field::placeholder{
-        text-align: center;
-        }
-  }
-}
-
-footer{
-    width: 100vw;
-    margin-top: 2em;
-    align-self:flex-end;
-}
-
-.FilterContainer{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5em;
-
-    padding: 0.6em;
-    padding-left:8.5em;
-    width:100vw;
-    height:6vh;
-    
-    border: none;
-    outline: none;
-    
-    color: white;
-    background-color: #171717;
-    
-    
-    box-shadow: inset 2px 5px 10px rgb(5, 5, 5);
-
-
-    .Search{
-    background: none;
-    border: none;
-    outline: none;
-    width: 100%;
-    color: #d3d3d3;
-
-    &.input-field::placeholder{
-        text-align: center;
-    }
-    }
-
-    .SearchBtn{
-        padding: 0.1em;
-        padding-left: 0.4em;
-        padding-right: 0.4em;
-        border-radius: 15px;
-
-        margin-right: 0.5em;
-        border: none;
-    
-        outline: none;
-    
-        transition: .4s ease-in-out;
-    
-        background-color: #252525;
-        color: white;
-
-        &.SearchBtn:hover{
-             background-color: black;
-        }
-    }
-}
-
-
 .Table{
     width:100vw;
     height:auto;
     background:#252525;
     color:white;
-    
-    padding:0.5em;
-    padding-left: 1em;
     border-collapse: separate;
     border-spacing: 5px;
 }
@@ -431,95 +749,118 @@ footer{
     box-shadow: inset 2px 5px 10px rgb(5, 5, 5);
     font-weight:600;
     font-size:17px;
-
 }
 
-.Tablebody{
-    overflow-y:auto;
-}
-
-.TableCell{
-    
+.Table-Input-Field{
+    font-size:16px;
+    width:150px;
+    height:30px;
 }
 
 @media (min-width: 768px) and (max-width: 1024px){
-    .userName{
+    .TopBarText{
         margin-left:1em;
         text-align:start;
     }
 
     .ItemsContainer{
-        margin-top: 1em;
+        margin-top: 3em;
         margin-left:0.5em;
         margin-right:0.5em;
-        margin-bottom:1.5em;
+        margin-bottom:2em;
 
         padding:0.5em;
 
-        width:85vw;
+        width:75vw;
         height: 50vh;
     }
 
+    .Firstrow{   
+        margin-top:1em;
+        padding:0.5em;
+        height:6em;
 
-    .Firstrow{
-    
-    margin-top:1em;
-    padding:1em;
-    height:6em;
+        .FirstrowField{
+            margin-left:0.5em;
+            margin-right:0.5em;
+            width:15em;
+        }
     }
     
     .Secondrow{
         margin-top:-1em;
-    }
-
-.field{
-    
-    padding: 0.8em;
-    
-    margin-left: 0.4em;
-    margin-right:0.1em;
-    margin-top: 0.01em;    
     }
 }
   
 
 @media (max-width: 768px) {
-    .userName{
+    .TopBarText{
         margin-left:1em;
         text-align:start;
     }
 
+    .Container{
+        overflow:hidden;
+    }
+
     .ItemsContainer{
-        margin-top: 1em;
+        margin-top: 2em;
         margin-left:0.5em;
         margin-right:0.5em;
-        margin-bottom:1.5em;
+        margin-bottom:1em;
 
         padding:0.5em;
 
-        width:85vw;
-        height: 50vh;
+        width:97vw;
+        height: 60vh;
     }
-
 
     .Firstrow{
-    
-    margin-top:1em;
-    padding:1em;
-    height:6em;
-    }
-    
-    .Secondrow{
-        margin-top:-1em;
+        margin-top:1.2em;
+        padding:0.2em;
+        height:6em;
+
+        .FirstrowField{
+            margin-left:0.5em;
+            margin-right:0.5em;
+            width:9em;
+        }
     }
 
-.field{
-    
-    padding: 0.8em;
-    
-    margin-left: 0.4em;
-    margin-right:0.1em;
-    margin-top: 0.01em;    
+    .Secondrow{
+        flex-direction:column;
+        margin-top:-2em;
+        margin-bottom:2em;
+
+        .CountityField{
+            padding-right:-1em;
+            padding-left:1em;
+
+            margin-left:0.5em;
+        
+            .Countity{
+                width:6em;
+            
+                padding-top:0.7em;
+
+                margin-top:0.7em;
+                margin-right:0.1em;
+                margin-left:0.3em;
+            }
+
+            .UnitDropDown{
+                position: relative;
+            }
+        }
+
+        .SecondrowField{
+            padding-top:0.7em;
+
+            margin-top:0.5em;
+            margin-left: 0.2em;       
+            margin-right: 1.5em;       
+        }
+
     }
 }  
 `;

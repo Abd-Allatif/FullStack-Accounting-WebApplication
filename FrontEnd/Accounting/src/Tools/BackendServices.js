@@ -82,6 +82,18 @@ const searchBy_Supplies= async (userData, query,type, setSuppliesData) => {
     }).catch(error => {
     });
 };
+const searchBy_only_Supplies= async (userData, query,setSuppliesData) => {
+    const newAccessToken = await refreshAccessToken();
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-supplies/${query}`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setSuppliesData(Array.isArray(response.data.supplies) ? response.data.supplies : []);
+    }).catch(error => {
+    });
+};
 
 const getReciepts = async (userData,setRecieptsData) => {
         // Refresh the access token
@@ -229,6 +241,36 @@ const searchPayment = async (userData, query, setPaymentData) => {
     });
 };
 
+const getCustomerSell = async (userData,setCustomerSellData) => {
+    // Refresh the access token
+    const newAccessToken = await refreshAccessToken();
+
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/sell-customer/`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setCustomerSellData(Array.isArray(response.data) ? response.data : [])
+    }).catch(error => {
+        alert("An error happened while fetching types. Please try again.");
+    });
+};
+
+const search_CustomerSells = async (userData, query, setCustomerSellData) => {
+    const newAccessToken = await refreshAccessToken();
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-customer-sell/${query}/`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setCustomerSellData(Array.isArray(response.data.customerSell) ? response.data.customerSell : []);
+    }).catch(error => {
+        console.error("Error fetching reciepts or types:", error);
+    });
+};
+
 
 export {
     getTypes,
@@ -237,6 +279,7 @@ export {
     getSupplies,
     searchBy_Supplies_Types,
     searchBy_Supplies,
+    searchBy_only_Supplies,
     getReciepts,
     search_Reciepts,
     getEmployee,
@@ -247,4 +290,6 @@ export {
     searchIncome,
     getPayment,
     searchPayment,
+    getCustomerSell,
+    search_CustomerSells,
 };
