@@ -21,6 +21,7 @@ urlpatterns = [
     path('api/users/<str:username>/edit-supplies/', views.edit_supplies, name='edit_supplies'),
     path('api/users/<str:username>/search/<str:query>', views.search_types_and_supplies, name='search_types_and_supplies'),
     path('api/users/<str:username>/search-supplies/<str:type>/<str:query>', views.search_supplies, name='search_supplies'),
+    path('api/users/<str:username>/search-supplies/<str:query>', views.search_only_supplies, name='search_supplies'),
     path('api/users/<str:username>/employ-employees/', views.employ_Employees, name='employ-employees'),
     path('api/users/<str:username>/edit-employees/', views.edit_employee, name='edit_employee'),
     path('api/users/<str:username>/search-employees/<str:query>', views.search_Employee, name='search_employee'),
@@ -33,6 +34,9 @@ urlpatterns = [
     path('api/users/<str:username>/manage-payment/', views.manage_payment),
     path('api/users/<str:username>/edit-payment/', views.edit_payment),
     path('api/users/<str:username>/search-payment/<str:query>/', views.search_payment),
+    path('api/users/<str:username>/sell-customer/', views.customer_Sell),
+    path('api/users/<str:username>/edit-customer-sell/', views.edit_customerSell),
+    path('api/users/<str:username>/search-customer-sell/<str:query>/', views.search_CustomerSell),
     path('api/data/export/export-excel/<str:username>/', views.export_all_data_excel, name='export_all_data_excel'),
     path('api/data/export/export-pdf/<str:username>/', views.export_all_data_pdf, name='export_all_data_pdf'),
 

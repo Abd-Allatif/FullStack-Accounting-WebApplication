@@ -234,13 +234,11 @@ class Customer(models.Model):
     # Customer Name
     customer_name = models.ForeignKey(CustomerName,on_delete=models.CASCADE)
     # Customer Date Of Buying
-    date_of_buying = models.DateField(auto_now=True)
+    date_of_buying = models.DateField(null=True,blank=True)
     # Customer Supply Fk
     supply = models.ForeignKey(Supplies,on_delete=models.CASCADE,default="")
     # Supply Price
     price = models.IntegerField(default=0)
-    # Units
-    unit = models.CharField(max_length=10,default='Peace')
     # Supllys Countity
     countity = models.IntegerField(default=0)
     # Total Value: Countity x Price

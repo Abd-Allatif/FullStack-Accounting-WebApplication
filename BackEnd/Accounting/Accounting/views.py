@@ -1,4 +1,6 @@
 from ast import Return
+from datetime import date
+import stat
 from urllib import response
 from numpy import double
 import pandas as pd
@@ -333,6 +335,27 @@ def search_supplies(request, username,type, query):
     except Exception as e:
         logger.error(f"SearchTypesAndSupplies error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_only_supplies(request, username, query):
+    try:
+        user_instance = User.objects.get(user_name=username)
+
+        # Search for supplies by supply_name and related type
+        supplies = Supplies.objects.filter(
+            Q(supply_name__icontains=query),user=user_instance
+        )
+        supplies_serializer = SuppliesSerializer(supplies, many=True)
+                
+        return Response({
+            'supplies': supplies_serializer.data,
+        }, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"SearchTypesAndSupplies error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST','GET'])
 @permission_classes([IsAuthenticated])
@@ -401,6 +424,8 @@ def edit_reciepts(request, username):
 
             if supplies:
                 try:
+                    supplies_instance = Supplies.objects.get(supply_name=supplies,user=user_instance)
+
                     reciept_instance = Reciept.objects.get(id=id, user=user_instance)
                     reciept_instance.delete()
                     reciept_instance.type = Type.objects.get(type=types, user=user_instance)
@@ -408,6 +433,7 @@ def edit_reciepts(request, username):
                     reciept_instance.countity = countity
                     reciept_instance.buy_price = buy_price
                     reciept_instance.sell_price = sell_price
+                    reciept_instance.total = calculateTotalPrice(countity,supplies_instance.unit,buy_price)
                     reciept_instance.notes = notes
                     reciept_instance.save()
                     
@@ -647,15 +673,15 @@ def manage_Income (request,username):
         if request.method == 'POST':
             user_data = request.data.get('user')
             money_from = request.data.get('money_from')
-            total = request.data.get('total')
+            total = int(request.data.get('total'))
             date = request.data.get('date')
             notes = request.data.get('notes')
 
             if user_data:
                 user_instance = User.objects.get(user_name = user_data)
-                
+                customer_instance = CustomerName.objects.get(customer_name=money_from,user=user_instance)
                 if money_from:
-                    MoneyIncome.objects.create(user=user_instance,money_from=money_from,total=total,date=date,notes=notes)
+                    MoneyIncome.objects.create(user=user_instance,money_from=customer_instance,total=total,date=date,notes=notes)
                         
                     return Response({'message': 'Setup successful!'}, status=status.HTTP_200_OK)
                 
@@ -679,7 +705,7 @@ def edit_Income(request, username):
         if request.method == 'PUT':
             id = request.data.get('id')
             money_from = request.data.get('money_from')
-            total = request.data.get('total')
+            total = int(request.data.get('total'))
             date = request.data.get('date')
             notes = request.data.get('notes')
 
@@ -832,6 +858,146 @@ def search_payment(request, username, query):
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         logger.error(f"EditTypes error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['POST','GET'])
+@permission_classes([IsAuthenticated])
+def customer_Sell(request,username):
+    try:
+        user = User.objects.get(user_name = username)
+
+        if request.method == 'POST':
+            user_data = request.data.get('user')
+            customer_name = request.data.get('customer_name')
+            date_of_buying = request.data.get('date_of_buying')
+            supply = request.data.get('supply')
+            price = int(request.data.get('price'))
+            countity = int(request.data.get('countity'))
+            debt = int(request.data.get('debt'))
+            paid = int(request.data.get('paid'))
+            notes = request.data.get('notes')
+            
+            if user_data:
+                user_instance = User.objects.get(user_name = user_data)
+                customer_instance = CustomerName.objects.get(user=user_instance,customer_name = customer_name)
+               
+
+                if customer_instance:
+                    try:
+                        supplies_instance = Supplies.objects.get(supply_name = supply,user = user_instance)
+                    except Supplies.DoesNotExist:
+                        return Response({'Error':'Supply Does Not Exist'},status=status.HTTP_404_NOT_FOUND)
+                        
+
+                    Customer.objects.create(user=user_instance,customer_name=customer_instance,
+                                            supply=supplies_instance,countity=countity,price=price,
+                                            debt=debt,paid=paid,date_of_buying=date_of_buying,
+                                            total = calculateTotalPrice(countity,supplies_instance.unit,price),
+                                            notes=notes)
+                        
+                    return Response({'message': 'Setup successful!'}, status=status.HTTP_200_OK)
+                else:
+                    return Response({'message': 'Type Does Not Exists Please Insert And Existing Type'},status=status.HTTP_404_NOT_FOUND)
+                
+        
+        if request.method == 'GET':
+            sells = Customer.objects.filter(user=user)
+            serializer = CustomerSerializer(sells, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        logger.error(f"User {username} not found.")
+        return Response({'error': 'User not found'})
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def edit_customerSell(request, username):
+    try:
+        user_instance = User.objects.get(user_name=username)
+
+        if request.method == 'PUT':
+            id = int(request.data.get('id'))
+            customer_name = request.data.get('customer_name')
+            date_of_buying = request.data.get('date_of_buying')
+            supply = request.data.get('supply')
+            price = int(request.data.get('price'))
+            countity = int(request.data.get('countity'))
+            debt = int(request.data.get('debt'))
+            paid = int(request.data.get('paid'))
+            notes = request.data.get('notes')
+
+            if customer_name and supply:
+                try:
+                    supplies_instance = Supplies.objects.get(supply_name=supply,user=user_instance)
+
+                    customerSell_instance = Customer.objects.get(id=id, user=user_instance)
+                    customerSell_instance.delete()
+                    customerSell_instance.customer_name = CustomerName.objects.get(customer_name=customer_name, user=user_instance)
+                    customerSell_instance.supply = supplies_instance
+                    customerSell_instance.countity = countity
+                    customerSell_instance.price = price
+                    customerSell_instance.debt = debt
+                    customerSell_instance.paid = paid
+                    customerSell_instance.date_of_buying = date_of_buying
+                    customerSell_instance.total = calculateTotalPrice(countity,supplies_instance.unit,price)
+                    customerSell_instance.notes = notes
+                    customerSell_instance.save()
+                    
+                    return Response({'message': 'Reciept updated successfully!'}, status=status.HTTP_200_OK)
+                except Reciept.DoesNotExist:
+                    return Response({'error': 'Reciept not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Supplies not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        elif request.method == 'DELETE':
+            sell_to_delete = request.data.get('id')
+
+            if sell_to_delete:
+                try:
+                    customerSell_instance = Customer.objects.get(id=sell_to_delete, user=user_instance)
+                    customerSell_instance.delete()
+                    return Response({'message': 'Reciept deleted successfully!'}, status=status.HTTP_200_OK)
+                except Reciept.DoesNotExist:
+                    return Response({'error': 'Reciept not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Reciept ID not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'error': 'Invalid request method'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"EditReciepts error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_CustomerSell(request, username, query):
+    try:
+        user_instance = User.objects.get(user_name=username)
+        
+        # Find Supplies and Types matching the query
+        supplies = Supplies.objects.filter(supply_name__icontains=query)
+        customer = CustomerName.objects.filter(customer_name__icontains=query)
+        
+        # Filter Reciept objects based on the found Supplies and Types
+        customerSell = Customer.objects.filter(
+            Q(supply__in=supplies) | Q(customer_name__in=customer) | Q(date_of_buying__icontains=query), user=user_instance
+        )
+        
+        customerSell_serializer = CustomerSerializer(customerSell, many=True)
+        
+        return Response({
+            'customerSell': customerSell_serializer.data,
+        }, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"SearchTypesAndSupplies error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 #--------------------------------------------------------------------------
