@@ -12,6 +12,7 @@ import Types from './Screens/MainScreen/Types'
 import Supplies from './Screens/MainScreen/Supplies'
 import Reciepts from './Screens/MainScreen/Reciepts'
 import Employee from './Screens/MainScreen/Employee'
+import mathNotes from './Screens/ai/MathNotes'
 
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import { AuthProvider } from './Tools/AuthContext';
@@ -35,6 +36,7 @@ function App() {
         <Route path="/main/supplies" element={<PrivateRoute element={Supplies} />} />
         <Route path="/main/reciepts" element={<PrivateRoute element={Reciepts} />} />
         <Route path="/main/employees" element={<PrivateRoute element={Employee} />} />
+        <Route path="/math-notes" element={<PrivateRoute element={mathNotes} />} />
         </Routes>
       </Router>
     </AuthProvider>
