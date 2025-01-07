@@ -692,7 +692,7 @@ dropdown-item-focused {
         padding:0.5em;
 
         width:97vw;
-        height: 60vh;
+        height: 55vh;
     }
 
     .Firstrow{
@@ -708,43 +708,44 @@ dropdown-item-focused {
 
     .Secondrow{
     
-    display:block;
+        display:block;
 
-    margin-top:-2em;
+        margin-top:-2em;
 
-    .CountityField{
-        display:flex;
-        flex-direction:row;
+        .CountityField{
+            display:flex;
+            flex-direction:row;
 
-        align-items:center;
-        justify-content:center;
+            align-items:center;
+            justify-content:center;
 
-        padding-right:-1em;
-        padding-left:1em;
+            padding-right:-1em;
+            padding-left:1em;
 
-        margin-left:0.5em;
+            margin-left:0.5em;
         
-        .Countity{
-            width:8em;
-            
-            padding-top:0.7em;
+            .Countity{
+             width:8em;
 
-            margin-top:0.7em;
-            margin-right:1em;
-            margin-left:0.3em;
+             padding-top:0.7em;
+
+             margin-top:0.7em;
+             margin-right:1em;
+             margin-left:0.1em;
         }
     }
 
     .SecondrowField{
         align-self:center;
-        padding-top:0.7em;    
+        padding-top:0.7em;
+        margin:1em;    
     }
 
 }
 
 
 .ForthRow{
-    margin-top:3em;
+    margin-top:1.5em;
 
     padding:1em;
     height:6em;

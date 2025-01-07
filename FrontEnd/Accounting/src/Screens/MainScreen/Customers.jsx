@@ -172,7 +172,7 @@ function Customers() {
                                     customer.customer_name
                                 )}
                             </TableCell>
-                            <TableCell style={{ fontSize: '20px', padding: '10px' }}>
+                            <TableCell className="totaldebt" style={{ fontSize: '20px', padding: '10px' }}>
                                     {customer.total_debt}
                             </TableCell>
                             <TableCell className='ButtonsCell'>

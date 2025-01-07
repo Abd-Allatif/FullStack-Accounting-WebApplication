@@ -157,7 +157,7 @@ function Payments() {
                 </div>
                 <div className="Secondrow">
                     <InputField placeholder='Date' type="date" value={paymentDate} onChange={(e) => setpaymentDate(e.target.value)} className="first-field" />
-                    <InputField placeholder='Notes' type="text" value={notes} onChange={(e) => setnotes(e.target.value)} className="first-field" />
+                    <InputField placeholder='Notes' type="text" value={notes} onChange={(e) => setnotes(e.target.value)} className="note-field" />
                 </div>
 
                 <div className="Thirdrow">
@@ -320,6 +320,11 @@ const StyledWrapper = styled.div`
     height:6em;
 }
 
+.note-field{
+    width:10em;
+    margin-left:-2em;
+}
+
 .Thirdrow{
     display:flex;
     felx-direction:row;
@@ -467,8 +472,8 @@ const StyledWrapper = styled.div`
 
         padding:0.5em;
 
-        width:60vw;
-        height: 35vh;
+        width:95vw;
+        height: 50vh;
     }
 
 
@@ -480,6 +485,10 @@ const StyledWrapper = styled.div`
     
     .Secondrow{
         margin-top:-1em;
+    }
+
+    .first-field{
+        margin:0.1em;
     }
 }  
 `;

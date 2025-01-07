@@ -556,6 +556,7 @@ header{
 
         padding:0.5em;
 
+        overflow-y:auto;
         width:43vw;
         height: 55vh;
 }
@@ -566,7 +567,7 @@ header{
     align-items:center;
     justify-content:center;
     
-    margin-top:1em;
+    margin-top:0.5em;
     padding:1em;
 
     height:6em;   
@@ -664,7 +665,7 @@ dropdown-item-focused {
     align-items:center;
     justify-content:center;
     
-    margin-top:-3em;
+    margin-top:0.5em;
 
     padding:1em;
     height:6em;
@@ -817,7 +818,7 @@ dropdown-item-focused {
 
     .Firstrow{
         margin-top:1.2em;
-        padding:0.2em;
+        padding:1em;
         height:6em;
 
         .FirstrowField{
@@ -830,37 +831,36 @@ dropdown-item-focused {
     .Secondrow{
         flex-direction:column;
         margin-top:-2em;
-        margin-bottom:2em;
+        margin-bottom:-1em;
 
         .CountityField{
-            padding-right:-1em;
+            padding-right:1em;
             padding-left:1em;
 
             margin-left:0.5em;
         
             .Countity{
-                width:6em;
-            
+                width:11em;
                 padding-top:0.7em;
-
-                margin-top:0.7em;
-                margin-right:0.1em;
-                margin-left:0.3em;
-            }
-
-            .UnitDropDown{
-                position: relative;
             }
         }
 
         .SecondrowField{
             padding-top:0.7em;
 
-            margin-top:0.5em;
-            margin-left: 0.2em;       
+            margin-top:0.1em;
+            margin-left: 1.5em;       
             margin-right: 1.5em;       
         }
 
+    }
+
+    .Thirdrow{
+        padding:0.1em;
+    }
+
+    .FifthRow{
+        margin:1em;
     }
 }  
 `;

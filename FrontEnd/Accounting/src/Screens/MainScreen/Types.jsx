@@ -385,7 +385,7 @@ const StyledWrapper = styled.div`
 
         padding:0.5em;
 
-        width:60vw;
+        width:75vw;
         height: 35vh;
     }
 

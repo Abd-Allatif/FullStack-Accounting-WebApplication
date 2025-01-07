@@ -775,6 +775,8 @@ dropdown-item-focused {
 
         padding:0.5em;
 
+        overflow-y:auto;
+
         width:97vw;
         height: 60vh;
     }
@@ -797,15 +799,15 @@ dropdown-item-focused {
         margin-bottom:2em;
 
         .CountityField{
-            padding-right:-1em;
+            padding-right:1em;
             padding-left:1em;
 
             margin-left:0.5em;
         
             .Countity{
-                width:6em;
+                width:9em;
             
-                padding-top:0.7em;
+                padding-top:0.8em;
 
                 margin-top:0.7em;
                 margin-right:0.1em;
@@ -820,12 +822,19 @@ dropdown-item-focused {
         .SecondrowField{
             padding-top:0.7em;
 
-            margin-top:0.5em;
-            margin-left: 0.2em;       
+            margin-top:0.4em;
+            margin-left: 1.5em;       
             margin-right: 1.5em;       
         }
 
     }
+
+    .Thirdrow{
+        margin-top:-2em;
+        margin-bottom:4em;
+    }
+
+    
 }  
 `;
 

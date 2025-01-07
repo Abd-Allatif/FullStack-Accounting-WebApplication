@@ -236,7 +236,7 @@ function MoneyIncome() {
                 </div>
                 <div className="Secondrow">
                     <InputField placeholder='Date' type="date" value={incomeDate} onChange={(e) => setincomeDate(e.target.value)} className="first-field" />
-                    <InputField placeholder='Notes' type="text" value={notes} onChange={(e) => setnotes(e.target.value)} className="first-field" />
+                    <InputField placeholder='Notes' type="text" value={notes} onChange={(e) => setnotes(e.target.value)} className="note-field" />
                 </div>
 
                 <div className="Thirdrow">
@@ -391,6 +391,11 @@ const StyledWrapper = styled.div`
     }
 }
 
+.note-field{
+    width:10em;
+    margin-left:-2em;
+}
+
 .dropdown {
     position: absolute;
     top: 100%;
@@ -426,7 +431,7 @@ dropdown-item-focused {
     
     margin-top:-3em;
 
-    padding:1em;
+    padding:0.5em;
     height:6em;
 }
 
@@ -577,19 +582,23 @@ dropdown-item-focused {
 
         padding:0.5em;
 
-        width:60vw;
-        height: 35vh;
+        width:95vw;
+        height: 50vh;
     }
 
 
     .Firstrow{
         margin-top:1em;
-        padding:0.2em;
+        width:350px;
         height:6em;
     }
     
     .Secondrow{
         margin-top:-1em;
+    }
+
+    .first-field{
+        margin:0.2em;
     }
 }  
 `;

@@ -448,8 +448,8 @@ const StyledWrapper = styled.div`
 
         padding:0.5em;
 
-        width:60vw;
-        height: 35vh;
+        width:95vw;
+        height: 45vh;
     }
 
 

@@ -1,68 +1,97 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom'
-import Employees from '../Screens/MainScreen/Employee';
+import { refreshAccessToken } from './authService'
+import axios from 'axios';
 
 function CustomDrawer({ isOpen, toggleDrawer }) {
-  
+  const [sellsFund, setSellsFund] = useState('');
+  const [permanatFund, setPermanatFund] = useState('');
+
+  const userData = JSON.parse(localStorage.getItem('user_data'));
+
+  const fetchFunds = async () => {
+    const newAccessToken = await refreshAccessToken();
+
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/money-funds/`, {
+            headers: {
+                'Authorization': `Bearer ${newAccessToken}`,
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            setSellsFund(response.data.sellsFund);
+            setPermanatFund(response.data.permanant_fund);
+        }).catch(error => {
+            alert("An error happened while fetching Funds. Please try again.");
+        });
+  }
+
+  useEffect(() => {
+      fetchFunds();
+  },[])
+
+
   const navigate = useNavigate();
 
-    const goCustomers = () => {
-        navigate("/main/customers");
-    };
-
-    const goSellCustomers = () => {
-      navigate("/main/sell-customers");
+  const goCustomers = () => {
+    navigate("/main/customers");
   };
 
-    const goMoneyIncome = () => {
-      navigate("/main/money-income");
-    }
+  const goSellCustomers = () => {
+    navigate("/main/sell-customers");
+  };
 
-    const goPayments = () => {
-      navigate("/main/payments");
-    }
+  const goMoneyIncome = () => {
+    navigate("/main/money-income");
+  }
 
-    const goTypes = () => {
-      navigate("/main/types");
-    }
+  const goPayments = () => {
+    navigate("/main/payments");
+  }
 
-    const goSupplies = () => {
-      navigate("/main/supplies")
-    }
+  const goTypes = () => {
+    navigate("/main/types");
+  }
 
-    const goReciepts = () => {
-      navigate("/main/reciepts");
-    }
+  const goSupplies = () => {
+    navigate("/main/supplies")
+  }
 
-    const goEmployee = () => {
-      navigate("/main/employees");
-    }  
-  
+  const goReciepts = () => {
+    navigate("/main/reciepts");
+  }
+
+  const goEmployee = () => {
+    navigate("/main/employees");
+  }
+
   return (
-        <DrawerWrapper>
-            <Overlay isOpen={isOpen} onClick={toggleDrawer(false)} />
-            <DrawerContent isOpen={isOpen}>
-                <div className='Drawer' onClick={toggleDrawer(false)} onKeyDown={toggleDrawer(false)}>
-                    <div className="BluredScreen">
-                        <h2 className='FundValue'>Permanant Fund:</h2>
-                        <p className='FundValue'>$ 0 0 0 0 0</p>
-                        <div className="PagesContainer">
-                          <button onClick={goCustomers} className='btn'>Customers</button>
-                          <button onClick={goSellCustomers} className='btn'>Sell Customer</button>
-                          <button onClick={goMoneyIncome} className='btn'>Money Income</button>
-                          <button onClick={goPayments} className='btn'>Payments</button>
-                          <button onClick={goTypes} className='btn'>Types</button>
-                          <button onClick={goSupplies} className='btn'>Supplies</button>
-                          <button onClick={goReciepts} className='btn'>Reciepts</button>
-                          <button onClick={goEmployee} className='btn'>Employees</button>
-                          <button className='btn'>Inventory</button>
-                        </div>
-                    </div>
-                </div>
-            </DrawerContent>
-        </DrawerWrapper>
-    );
+    <DrawerWrapper>
+      <Overlay isOpen={isOpen} onClick={toggleDrawer(false)} />
+      <DrawerContent isOpen={isOpen}>
+        <div className='Drawer' onClick={toggleDrawer(false)} onKeyDown={toggleDrawer(false)}>
+          <div className="BluredScreen">
+            <h2 className='FundValue'>Sells Fund:</h2>
+            <p className='FundValue'>{sellsFund}</p>
+            <button className='SellsFundBtn'>Move to Perma Fund</button>
+            <h2 className='FundValue'>Permanant Fund:</h2>
+            <p className='FundValue'>{permanatFund}</p>
+            <div className="PagesContainer">
+              <button onClick={goCustomers} className='btn'>Customers</button>
+              <button onClick={goSellCustomers} className='btn'>Sell Customer</button>
+              <button onClick={goMoneyIncome} className='btn'>Money Income</button>
+              <button onClick={goPayments} className='btn'>Payments</button>
+              <button onClick={goTypes} className='btn'>Types</button>
+              <button onClick={goSupplies} className='btn'>Supplies</button>
+              <button onClick={goReciepts} className='btn'>Reciepts</button>
+              <button onClick={goEmployee} className='btn'>Employees</button>
+              <button className='btn'>Inventory</button>
+            </div>
+          </div>
+        </div>
+      </DrawerContent>
+    </DrawerWrapper>
+  );
 }
 
 const DrawerWrapper = styled.div`
@@ -138,6 +167,10 @@ const DrawerContent = styled.div`
     z-index: 999; /* Ensure it's above other content */
   }
 
+  .SellsFund{
+    display:span;
+  }
+
   .FundValue{
     font-size:25px;
   }
@@ -152,7 +185,7 @@ const DrawerContent = styled.div`
   .btn{
     padding: 0.5em;
     padding-left: 1em;
-    padding-right: 14em;
+    padding-right: 12em;
     border-radius: 5px 25px;
 
     margin-right: 0.5em;
@@ -169,6 +202,30 @@ const DrawerContent = styled.div`
     &.btn:hover{
         background-color:black;
     }
+  }
+
+  .SellsFundBtn{
+   padding: 0.5em;
+    padding-left: 1em;
+    padding-right: 2em;
+    border-radius: 5px 25px;
+
+    margin-right: 0.5em;
+    margin-top:1em;
+    margin-bottom:1em;
+    border: none;
+    
+    outline: none;
+    
+    transition: .4s ease-in-out;
+    
+    background-color: #252525;
+    color: white;
+
+    &.btn:hover{
+        background-color:black;
+    }
+  
   }
 
 

@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
-import './MathNotes.css';
 import axios from 'axios';
+import styled from 'styled-components';
 
 function mathNotes() {
     //creating Refernce for Canvas to draw on
@@ -16,7 +16,7 @@ function mathNotes() {
     //creating a state for variable dictionary like 1=y x=1...
     const [dictOfVars, setVarDic] = useState({});
     //creating a state to render the result on the textbox
-    const [textValue,setTextValue] = useState("");
+    const [textValue, setTextValue] = useState("");
 
     //creating a function to clear the canvas by pressing a button
     function resetCanvas() {
@@ -57,7 +57,7 @@ function mathNotes() {
                         });
                     }
                 });
-                
+
                 respon.data.forEach((data) => {
                     setTimeout(() => {
                         setResult({
@@ -68,15 +68,18 @@ function mathNotes() {
                 });
 
             }
-            catch (e) { console.log(e); }
+            catch (e) { console.log(e);}
         }
     };
 
     //rendering results
     useEffect(() => {
         if (result) {
-           // console.log(`${result.expression} = ${result.answer}`)
+            // console.log(`${result.expression} = ${result.answer}`)
             setTextValue(`${result.expression} = ${result.answer}`);
+        }
+        else{
+            setTextValue(`${result.text}`);
         }
     }, [result]);
 
@@ -167,24 +170,87 @@ function mathNotes() {
     };
 
     return (
-        <>
-            <div className="Container">
-                <button className="funcButton" id="Reset" onClick={() => setReset(true)}>Reset</button>
-                <input type="color" className="ColorPicker" onChange={changeBrushColor} value={color} />
-                <button className="funcButton" id="Calculate" onClick={sendData}>Calculate</button>
+        <StyledWrapper>
+            <div className="width-full h-full bg-black">
+                <div className="Container">
+                    <button className="funcButton" id="Reset" onClick={() => setReset(true)}>Reset</button>
+                    <input type="color" className="ColorPicker" onChange={changeBrushColor} value={color} />
+                    <button className="funcButton" id="Calculate" onClick={sendData}>Calculate</button>
+                </div>
+                <div className="Container">
+                    <input type="text" className="Resultbox" value={textValue} />
+                </div>
+                <canvas ref={canvasref} id="canvas"
+                    className="absloute top-0 left-0 width-full h-full"
+                    onMouseDown={startDrawing}
+                    onMouseOut={stopDrawing}
+                    onMouseUp={stopDrawing}
+                    onMouseMove={draw} />
             </div>
-            <div className="Container">
-                <input type="text" className="Resultbox" value={textValue}/>
-            </div>
-            <canvas ref={canvasref} id="canvas"
-                className="absloute top-0 left-0 width-full h-full"
-                onMouseDown={startDrawing}
-                onMouseOut={stopDrawing}
-                onMouseUp={stopDrawing}
-                onMouseMove={draw} />
-        </>
+        </StyledWrapper>
     );
 }
 
+const StyledWrapper = styled.div`
+.Background{
+    width:100vw;
+    height:100vh;
+    
+    background-color:black;
+
+}
+
+.Container {
+    display: flex;
+    flex-direction: row;
+    margin: 0;
+    width: 100vw;
+}
+
+.funcButton {
+    width: 35vw;
+    max-width: 100%;
+    height: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+    padding: 15px;
+    font-size: 40px;
+    transition: ease 0.30s;
+
+    background-color: #252525;
+    color: white;
+}
+
+.funcButton:hover {
+    background-color: black;
+    color: white;
+}
+
+.ColorPicker {
+    width: 35vw;
+    max-width: 100%;
+    height: 100px;
+
+    border-radius: 5px;
+    border-color: #2b2b2b;
+}
+
+.Resultbox {
+    width: 100vw;
+    max-width: 100%;
+    padding: 10px;
+    margin: 0;
+
+    border: none;
+    background-color: #272727;
+    font-size: 16px;
+    text-align: center;
+    overflow: scroll;
+    color:white;
+}
+
+
+`;
 
 export default mathNotes
