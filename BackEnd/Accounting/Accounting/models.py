@@ -360,6 +360,7 @@ class Employee(models.Model):
 #Creating the MoneyFund Model /Done/
 class MoneyFund(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
+    
     permanant_fund = models.IntegerField(default=0)
 
     sells_fund = models.IntegerField(default=0)

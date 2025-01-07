@@ -1,3 +1,4 @@
+import stat
 from numpy import double
 import pandas as pd
 import logging
@@ -1122,24 +1123,46 @@ def search_sells(request, username, query):
     except Exception as e:
         logger.error(f"SearchTypesAndSupplies error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+api_view(['GET'])
+@permission_classes([IsAuthenticated]) 
+def get_fund(request,username):
+    try:
+        user_instance = User.objects.get(user_name=username)
+
+        if user_instance:
+           moneyfund_instance = MoneyFund.objects.get(user=user_instance)
+           serializer = MoneyFundSerializer(moneyfund_instance)
+
+           return Response({
+               "sellsFund": serializer.data.sells_fund,
+               "permaFund" : serializer.data.permanant_fund
+           },status=status.HTTP_200_OK)
+
+    except User.DoesNotExist:
+        return Response({'Error':'User Does Not Exist'},status=status.HTTP_404_NOT_FOUND)
     
 #--------------------------------------------------------------------------
 # AI Integration
 
 class ImageAnalysisView(APIView):
     def post(self, request):
-        serializer = ImageDataSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-        image_data = data['image'].split(",")[1]
-        image_bytes = base64.b64decode(image_data)
-        image = Image.open(BytesIO(image_bytes))
-        responses = analyze_image(image, data['dict_of_vars'])
-        return Response({
+        try:
+            serializer = ImageDataSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            data = serializer.validated_data
+            image_data = data['image'].split(",")[1]
+            image_bytes = base64.b64decode(image_data)
+            image = Image.open(BytesIO(image_bytes))
+            responses = analyze_image(image, data['dict_of_vars'])
+            return Response({
             "message": "Image processed",
             "data": responses,
             "status": "success"
-        })
+            })
+        except  Exception as e:
+            return Response({'Error':e},status=status.HTTP_400_BAD_REQUEST)
+
     
 #--------------------------------------------------------------------------
 # Expoting Data
