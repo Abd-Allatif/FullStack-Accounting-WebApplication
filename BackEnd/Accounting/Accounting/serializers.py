@@ -101,3 +101,8 @@ class InventorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Inventory
         fields = '__all__'
+
+
+class ImageDataSerializer(serializers.Serializer):
+    image = serializers.CharField()  # Base64 encoded image
+    dict_of_vars = serializers.DictField()

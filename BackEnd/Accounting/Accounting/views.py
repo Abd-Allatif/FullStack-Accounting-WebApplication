@@ -1,7 +1,3 @@
-from ast import Return
-from datetime import date
-import stat
-from urllib import response
 from numpy import double
 import pandas as pd
 import logging
@@ -21,6 +17,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework import status
 from .calculations import calculateTotalPrice
+from PIL import Image
+import base64
+from io import BytesIO
+from .utils import analyze_image
+from rest_framework.views import APIView
 
 logger = logging.getLogger(__name__)
 
@@ -1121,6 +1122,24 @@ def search_sells(request, username, query):
     except Exception as e:
         logger.error(f"SearchTypesAndSupplies error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+#--------------------------------------------------------------------------
+# AI Integration
+
+class ImageAnalysisView(APIView):
+    def post(self, request):
+        serializer = ImageDataSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        image_data = data['image'].split(",")[1]
+        image_bytes = base64.b64decode(image_data)
+        image = Image.open(BytesIO(image_bytes))
+        responses = analyze_image(image, data['dict_of_vars'])
+        return Response({
+            "message": "Image processed",
+            "data": responses,
+            "status": "success"
+        })
     
 #--------------------------------------------------------------------------
 # Expoting Data
