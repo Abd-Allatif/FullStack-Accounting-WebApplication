@@ -65,7 +65,7 @@ const SearchField = React.forwardRef(({ onClick, value, onChange }, ref) => (
 ));
 SearchField.displayName = "SearchField";
 
-const TopBar = React.forwardRef(({ drawerButton_Onclick, backButton_Onclick, Text, ...props }, ref) => (
+const TopBar = React.forwardRef(({ drawerButton_Onclick, backButton_Onclick, Text,buttonText, ...props }, ref) => (
     <TopBarStyle>
         <header>
             <div className="TopBar">
@@ -75,7 +75,7 @@ const TopBar = React.forwardRef(({ drawerButton_Onclick, backButton_Onclick, Tex
                     </svg>
                 </Button>
                 <h2 className='TopBarText'>{Text}</h2>
-                <Button className='backbtn' onClick={backButton_Onclick}>Back</Button>
+                <Button className='backbtn' onClick={backButton_Onclick}>{buttonText ? buttonText : "Back"}</Button>
             </div>
         </header>
     </TopBarStyle>

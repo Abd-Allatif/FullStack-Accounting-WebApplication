@@ -271,6 +271,36 @@ const search_CustomerSells = async (userData, query, setCustomerSellData) => {
     });
 };
 
+const getSell = async (userData,setSellData) => {
+    // Refresh the access token
+    const newAccessToken = await refreshAccessToken();
+
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/sell-supplies/`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setSellData(Array.isArray(response.data) ? response.data : [])
+    }).catch(error => {
+        alert("An error happened while fetching types. Please try again.");
+    });
+};
+
+const search_sell = async (userData, query, setSellData) => {
+const newAccessToken = await refreshAccessToken();
+await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-sell/${query}`, {
+    headers: {
+        'Authorization': `Bearer ${newAccessToken}`,
+        'Content-Type': 'application/json'
+    }
+}).then(response => {
+    setSellData(Array.isArray(response.data.sells) ? response.data.sells : []);
+}).catch(error => {
+    console.error("Error fetching reciepts or types:", error);
+});
+};
+
 
 export {
     getTypes,
@@ -292,4 +322,6 @@ export {
     searchPayment,
     getCustomerSell,
     search_CustomerSells,
+    getSell,
+    search_sell,
 };

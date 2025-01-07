@@ -123,6 +123,8 @@ const DrawerContent = styled.div`
     right: 0;
     bottom: 0;
 
+    overflow-y:auto;
+
     padding: 20px;
 
     background: rgba(0, 0, 0, 0.5);
@@ -149,8 +151,8 @@ const DrawerContent = styled.div`
 
   .btn{
     padding: 0.5em;
-    padding-left: 1.1em;
-    padding-right: 17em;
+    padding-left: 1em;
+    padding-right: 14em;
     border-radius: 5px 25px;
 
     margin-right: 0.5em;
@@ -189,13 +191,13 @@ const DrawerContent = styled.div`
 
   @media (max-width:760px) {
     .Drawer{
-        width:50vw;
+        width:65vw;
     }
 
     .btn{
       padding: 0.5em;
-      padding-left: 1.1em;
-      padding-right: 4.6em;
+      padding-left: 1em;
+      padding-right: 1em;
 
        margin-right: 0.5em;
   
