@@ -37,6 +37,12 @@ urlpatterns = [
     path('api/users/<str:username>/sell-customer/', views.customer_Sell),
     path('api/users/<str:username>/edit-customer-sell/', views.edit_customerSell),
     path('api/users/<str:username>/search-customer-sell/<str:query>/', views.search_CustomerSell),
+    path('api/users/<str:username>/sell-customer/', views.customer_Sell),
+    path('api/users/<str:username>/edit-customer-sell/', views.edit_customerSell),
+    path('api/users/<str:username>/search-customer-sell/<str:query>/', views.search_CustomerSell),
+    path('api/users/<str:username>/sell-supplies/', views.sells),
+    path('api/users/<str:username>/edit-sell/', views.edit_sells),
+    path('api/users/<str:username>/search-sell/<str:query>/', views.search_sells),
     path('api/data/export/export-excel/<str:username>/', views.export_all_data_excel, name='export_all_data_excel'),
     path('api/data/export/export-pdf/<str:username>/', views.export_all_data_pdf, name='export_all_data_pdf'),
 

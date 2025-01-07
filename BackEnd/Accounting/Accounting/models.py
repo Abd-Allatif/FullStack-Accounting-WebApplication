@@ -250,15 +250,6 @@ class Customer(models.Model):
     # Notes
     notes = models.CharField(max_length=400,null=True,blank=True)
 
-    # Defining a Function to Calculate the Total Value: Countity x Price
-    def save(self,*args,**kwrgs):
-        # if self.debt > 0 and self.paid > 0:
-        #     self.debt = abs(self.total - self.paid)
-
-        self.total = self.countity * self.price
-        # Saving Changes
-        super(Customer,self).save(*args,**kwrgs)
-
     def __str__(self):
         return f'{self.customer_name}'
 
@@ -381,24 +372,16 @@ class Sell(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
     # Supply Fk
     supply = models.ForeignKey(Supplies,on_delete=models.CASCADE)
-    # Unit
-    unit = models.CharField(max_length=10,default="Kg")
     # Countity
     countity = models.IntegerField()
     # Price
     price = models.IntegerField()
     # Total
-    total = models.IntegerField(editable=False,default=0)
+    total = models.IntegerField(default=0)
     # Date
-    date = models.DateField(auto_now=True)
+    date = models.DateField(null=True,blank=True)
     # Notes
     notes = models.CharField(max_length=400,null=True,blank=True)
-
-    # Defining a Function to Calculate the Total Value: Countity x Price
-    def save(self,*args,**kwrgs):
-        self.total = self.countity * self.price
-        # Saving Changes
-        super(Sell,self).save(*args,**kwrgs)
 
     def __str__(self):
         return f'Date: {self.date} Supply: {self.supply} Total: {self.total}'

@@ -1000,6 +1000,128 @@ def search_CustomerSell(request, username, query):
         logger.error(f"SearchTypesAndSupplies error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+@api_view(['POST','GET'])
+@permission_classes([IsAuthenticated])
+def sells(request,username):
+    try:
+        user = User.objects.get(user_name = username)
+
+        if request.method == 'POST':
+            user_data = request.data.get('user')
+            supplies = request.data.get('supplies')
+            countity = int(request.data.get('countity'))
+            price = int(request.data.get('price'))
+            date = request.data.get('date')
+            notes = request.data.get('notes')
+            
+            if user_data:
+                user_instance = User.objects.get(user_name = user_data)
+                supplies_instance = Supplies.objects.get(supply_name = supplies,user = user_instance)
+                if supplies:
+                    Sell.objects.create(user=user_instance,supply=supplies_instance,
+                                            countity=countity,price=price,
+                                            date=date,
+                                            total = calculateTotalPrice(countity,supplies_instance.unit,price),
+                                            notes=notes)
+                    return Response({'message': 'Setup successful!'}, status=status.HTTP_200_OK)
+                else:
+                    return Response({'message': 'Supply Does Not Exists Please Insert An Existing Supply'},status=status.HTTP_404_NOT_FOUND)
+                
+        
+        if request.method == 'GET':
+            sells = Sell.objects.filter(user=user)
+            serializer = SellSerializer(sells, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        logger.error(f"User {username} not found.")
+        return Response({'error': 'User not found'})
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def edit_sells(request, username):
+    try:
+        user_instance = User.objects.get(user_name=username)
+
+        if request.method == 'PUT':
+            id = int(request.data.get('id'))
+            supplies = request.data.get('supply')
+            countity = int(request.data.get('countity'))
+            price = int(request.data.get('price'))
+            date = request.data.get('date')
+            notes = request.data.get('notes')
+
+            if supplies:
+                try:
+                    supplies_instance = Supplies.objects.get(supply_name=supplies,user=user_instance)
+
+                    sell_instance = Sell.objects.get(id=id, user=user_instance)
+                    sell_instance.delete()
+                    sell_instance.supply = supplies_instance
+                    sell_instance.countity = countity
+                    sell_instance.price = price
+                    sell_instance.date = date
+                    sell_instance.total = calculateTotalPrice(countity,supplies_instance.unit,price)
+                    sell_instance.notes = notes
+                    sell_instance.save()
+                    
+                    return Response({'message': 'Reciept updated successfully!'}, status=status.HTTP_200_OK)
+                except Sell.DoesNotExist:
+                    return Response({'error': 'Reciept not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Supplies not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        elif request.method == 'DELETE':
+            sell_to_delete = request.data.get('id')
+
+            if sell_to_delete:
+                try:
+                    sell_instance = Sell.objects.get(id=sell_to_delete, user=user_instance)
+                    sell_instance.delete()
+                    return Response({'message': 'Sell deleted successfully!'}, status=status.HTTP_200_OK)
+                except Sell.DoesNotExist:
+                    return Response({'error': 'Sell not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Sell ID not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'error': 'Invalid request method'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Sell error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_sells(request, username, query):
+    try:
+        user_instance = User.objects.get(user_name=username)
+        
+        # Find Supplies and Types matching the query
+        supplies = Supplies.objects.filter(supply_name__icontains=query)
+        
+        # Filter Reciept objects based on the found Supplies and Types
+        sell = Sell.objects.filter(
+            Q(supply__in=supplies) | Q(date__icontains=query), user=user_instance
+        )
+        
+        sellSerializer = SellSerializer(sell, many=True)
+       
+        
+        return Response({
+            'sells': sellSerializer.data,
+        }, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"SearchTypesAndSupplies error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
 #--------------------------------------------------------------------------
 # Expoting Data
 
