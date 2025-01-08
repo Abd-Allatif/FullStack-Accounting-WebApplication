@@ -14,21 +14,44 @@ function CustomDrawer({ isOpen, toggleDrawer }) {
     const newAccessToken = await refreshAccessToken();
 
     await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/money-funds/`, {
-            headers: {
-                'Authorization': `Bearer ${newAccessToken}`,
-                'Content-Type': 'application/json'
-            }
-        }).then(response => {
-            setSellsFund(response.data.sellsFund);
-            setPermanatFund(response.data.permanant_fund);
-        }).catch(error => {
-            alert("An error happened while fetching Funds. Please try again.");
-        });
+      headers: {
+        'Authorization': `Bearer ${newAccessToken}`,
+        'Content-Type': 'application/json'
+      }
+    }).then(response => {
+      setSellsFund(response.data.sells_fund);
+      setPermanatFund(response.data.permanant_fund);
+    }).catch(error => {
+      alert("An error happened while fetching Funds. Please try again.");
+    });
   }
 
   useEffect(() => {
-      fetchFunds();
-  },[])
+    fetchFunds();
+  }, [])
+
+  const send_data = async (event) => {
+    event.preventDefault();
+
+    // Refresh the access token
+    const newAccessToken = await refreshAccessToken();
+
+    if (sellsFund != 0) {
+      await axios.post(`${import.meta.env.VITE_API_URL}/${userData.user_name}/move-sells-funds/`, {
+        user: userData.user_name,
+        sellsFund: sellsFund,
+      }, {
+        headers: {
+          'Authorization': `Bearer ${newAccessToken}`,
+          'Content-Type': 'application/json'
+        }
+      }).then(response => {
+        location.reload();
+      }).catch(error => {
+        alert("An Error Happend Please Wait and Try Again");
+      });
+    }
+  };
 
 
   const navigate = useNavigate();
@@ -65,6 +88,8 @@ function CustomDrawer({ isOpen, toggleDrawer }) {
     navigate("/main/employees");
   }
 
+  
+
   return (
     <DrawerWrapper>
       <Overlay isOpen={isOpen} onClick={toggleDrawer(false)} />
@@ -73,7 +98,7 @@ function CustomDrawer({ isOpen, toggleDrawer }) {
           <div className="BluredScreen">
             <h2 className='FundValue'>Sells Fund:</h2>
             <p className='FundValue'>{sellsFund}</p>
-            <button className='SellsFundBtn'>Move to Perma Fund</button>
+            <button className='SellsFundBtn' onClick={send_data}>Move to Perma Fund</button>
             <h2 className='FundValue'>Permanant Fund:</h2>
             <p className='FundValue'>{permanatFund}</p>
             <div className="PagesContainer">
@@ -222,7 +247,7 @@ const DrawerContent = styled.div`
     background-color: #252525;
     color: white;
 
-    &.btn:hover{
+    &.SellsFundBtn:hover{
         background-color:black;
     }
   

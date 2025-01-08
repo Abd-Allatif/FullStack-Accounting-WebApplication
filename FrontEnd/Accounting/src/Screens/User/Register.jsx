@@ -60,7 +60,7 @@ function Register() {
   return (<>
     <StyledWrapper>
       <BackGround>
-        <Card>
+        <Card className="ItemsContainer">
           <p id="heading">Register</p>
           <div className="ResetCode">
             {resetCode && <p style={{ color: 'white' }}><b><u>Your Reset Code is</u>: <span style={{ color: "Red", fontFamily: "arial" }}>{resetCode}</span> <u>Dont Lose It</u></b></p>}
@@ -72,7 +72,7 @@ function Register() {
 
             <InputField autoComplete="off"
               includeSVG viewBox="0 0 20 20" svgPath="M4 7L10.94 11.3375C11.5885 11.7428 12.4115 11.7428 13.06 11.3375L20 7M5 18H19C20.1046 18 21 17.1046 21 16V8C21 6.89543 20.1046 6 19 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              placeholder="Email" type="text" value={email} onChange={(e) => setEmail(e.target.value.toLowerCase())} />
+              placeholder="Email" type="text" className="EmailField" value={email} onChange={(e) => setEmail(e.target.value.toLowerCase())} />
 
             <InputField placeholder="Password"
               includeSVG svgPath="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"
@@ -98,6 +98,10 @@ function Register() {
 const StyledWrapper = styled.div`
   .InputContainer{
     margin-top: 25px;
+  }
+
+  .ItemsContainer{
+    height:80vh;
   }
 
   #heading {
@@ -128,6 +132,7 @@ const StyledWrapper = styled.div`
     color: white;
   }
 
+  
 
   .BackButton {
     padding: 0.5em;
