@@ -6,6 +6,9 @@ import bcrypt
 from django.utils.crypto import get_random_string
 from django.contrib.auth.models import BaseUserManager,AbstractBaseUser,PermissionsMixin
 
+# All Models Have Been Finnshed
+
+# Creating A custom User Model That Include New Fields
 class UserManager(BaseUserManager):
     def create_user(self, user_name, email, password=None, **extra_fields):
         if not email:
@@ -42,7 +45,7 @@ class User (AbstractBaseUser,PermissionsMixin):
 
     groups = models.ManyToManyField(
         'auth.Group',
-        related_name='accounting_user_set',  # Ensure this is unique
+        related_name='accounting_user_set',
         blank=True,
         help_text=('The groups this user belongs to. A user will get all permissions granted to each of their groups.'),
         verbose_name=('groups'),
@@ -50,7 +53,7 @@ class User (AbstractBaseUser,PermissionsMixin):
     )
     user_permissions = models.ManyToManyField(
         'auth.Permission',
-        related_name='accounting_user_permissions',  # Ensure this is unique
+        related_name='accounting_user_permissions',
         blank=True,
         help_text=('Specific permissions for this user.'),
         verbose_name=('user permissions'),
@@ -62,10 +65,11 @@ class User (AbstractBaseUser,PermissionsMixin):
     USERNAME_FIELD = 'user_name'
     REQUIRED_FIELDS = ['email']
 
+    # Creating a Function for Encrypting The Passowrd (Hashing)
     def set_password(self,raw_password):
         hashed_password = bcrypt.hashpw(raw_password.encode('utf-8'), bcrypt.gensalt())  # type: ignore
         self.password = hashed_password.decode('utf-8')
-
+    # Creating a Function To check for Encrypted Password (Hashed)
     def check_password(self,raw_password):
         return bcrypt.checkpw(raw_password.encode('utf-8'), self.password.encode('utf-8'))
     # Hashing the Passwords before saving
@@ -76,19 +80,15 @@ class User (AbstractBaseUser,PermissionsMixin):
     def __str__(self):
         return f'{self.user_name}'
 
-@receiver(post_save,sender = User)
-def update_permanant_fund(sender,instance,**kwargs):
-    money_fund, created = MoneyFund.objects.get_or_create(
-    permanant_fund=instance.budget,  # Use a specific field to look up the object
-    defaults={'user':instance,'permanant_fund': instance.budget, 'sells_fund': 0}
-)
-    if not created:
-        money_fund.permanant_fund = instance.budget
-        money_fund.save()
+# Using Django Signals to Alter Other Tables
+@receiver(post_save, sender=User)
+def create_money_fund(sender, instance, created, **kwargs):
+    if created:
+        MoneyFund.objects.create(user=instance)
 
 @receiver(post_delete,sender = User)
 def update_permanant_fund_on_delete(sender,instance,**kwargs):
-    money_fund = MoneyFund.objects.first()
+    money_fund = MoneyFund.objects.get(user = instance.user_name)
 
     if money_fund:
         money_fund.permanant_fund -= instance.budget
@@ -101,7 +101,7 @@ def update_permanant_fund_on_edit(sender, instance, **kwargs):
             old_instance = User.objects.get(pk=instance.pk)
             old_budget = old_instance.budget
             new_budget = instance.budget
-            money_fund = MoneyFund.objects.first()
+            money_fund = MoneyFund.objects.get(user=instance.user_name)
             
             if money_fund:
                 # Adjust the permanent fund based on the budget change
@@ -111,7 +111,6 @@ def update_permanant_fund_on_edit(sender, instance, **kwargs):
     except User.DoesNotExist:
         # This block will be executed during user creation, ignore it
         pass
-
 
 #Creating the Type Model /Done/Checked
 class Type(models.Model):
@@ -145,7 +144,7 @@ class DispatchSupply(models.Model):
     supply = models.ForeignKey(Supplies,on_delete=models.CASCADE,default="")
     countity = models.IntegerField(default=0)
     buy_price = models.IntegerField(default=0)
-    dispatch_date = models.DateField(auto_now=True)
+    dispatch_date = models.DateField(null=True,blank=True)
     reason = models.CharField(max_length=400,null=True,blank=True)
 
     def __str__(self):
@@ -164,7 +163,7 @@ def update_supply_and_fund(sender, instance, created, **kwargs):
             supply.save()
 
             # Update money fund
-            money_fund = MoneyFund.objects.first()
+            money_fund = MoneyFund.objects.get(user=instance.user)
             if money_fund.permanant_fund >= (countity * buy_price):
                 money_fund.permanant_fund -= (countity * buy_price)
                 money_fund.save()
@@ -185,7 +184,7 @@ def handle_dispatch_deletion(sender, instance, **kwargs):
     supply.save()
 
     # Revert money fund
-    money_fund = MoneyFund.objects.first()
+    money_fund = MoneyFund.objects.get(user=instance.user)
     money_fund.permanant_fund += (countity * buy_price)
     money_fund.save()
 
@@ -208,7 +207,7 @@ def handle_dispatch_update(sender, instance, **kwargs):
             supply.save()
 
             # Update money fund
-            money_fund = MoneyFund.objects.first()
+            money_fund = MoneyFund.objects.get(user=instance.user)
             if money_fund.permanant_fund + (original.countity * original.buy_price) >= (instance.countity * instance.buy_price):
                 money_fund.permanant_fund -= (countity_difference * instance.buy_price)
                 money_fund.save()
@@ -275,7 +274,7 @@ def capture_old_customer_value(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Customer)
 def handle_customer_save(sender, instance, created, **kwargs):
-    money_fund = MoneyFund.objects.first()
+    money_fund = MoneyFund.objects.get(user=instance.user)
     customer_name, _ = CustomerName.objects.get_or_create(customer_name=instance.customer_name.customer_name)
     supply = instance.supply
 
@@ -324,7 +323,7 @@ def handle_customer_deletion(sender, instance, **kwargs):
     old_paid = getattr(instance, '_old_paid', 0)
     old_debt = getattr(instance, '_old_debt', 0)
     old_countity = getattr(instance, '_old_countity', 0)
-    money_fund = MoneyFund.objects.first()
+    money_fund = MoneyFund.objects.get(user=instance.user)
 
     if old_paid > 0 and money_fund:
         money_fund.sells_fund -= old_paid
@@ -352,14 +351,12 @@ class Employee(models.Model):
 
     salary = models.IntegerField(default=0)
 
-    next_salary = models.DateField(blank=True,null=True)
-
     def __str__(self):
         return f'{self.employee_name}'
 
 #Creating the MoneyFund Model /Done/
 class MoneyFund(models.Model):
-    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    user = models.OneToOneField(User,on_delete=models.CASCADE)
     
     permanant_fund = models.IntegerField(default=0)
 
@@ -367,6 +364,8 @@ class MoneyFund(models.Model):
 
     def __str__(self):
         return f'{self.permanant_fund} {self.sells_fund}'
+
+
 
 #Creating the Sell Model /Done/
 class Sell(models.Model):
@@ -393,7 +392,7 @@ class Sell(models.Model):
 # /Done Update MoneyFund by Sell/
 @receiver(post_save,sender=Sell)
 def update_money_on_sell (sender,instance,**kwargs):
-    money_fund = MoneyFund.objects.first()
+    money_fund = MoneyFund.objects.get(user=instance.user)
     
     if not money_fund:
         money_fund = MoneyFund.objects.create(permanant_fund = 0,sells_fund = 0)
@@ -403,7 +402,7 @@ def update_money_on_sell (sender,instance,**kwargs):
 
 @receiver(post_delete,sender=Sell)
 def update_money_delete_on_sell (sender,instance,**kwargs):
-    money_fund = MoneyFund.objects.first()
+    money_fund = MoneyFund.objects.get(user=instance.user)
     
     if money_fund:
         money_fund.sells_fund -= instance.total
@@ -415,7 +414,7 @@ def update_money_on_edit(sender,instance,**kwargs):
     if instance.pk:
         old_instance = Sell.objects.get(pk=instance.pk)
         old_total = old_instance.total
-        money_fund = MoneyFund.objects.first()
+        money_fund = MoneyFund.objects.get(user=instance.user)
         if money_fund:
             money_fund.sells_fund -= old_total
             money_fund.save()
@@ -464,7 +463,7 @@ class Reciept(models.Model):
     # Total Value: Buy Price x Countity
     total = models.IntegerField(default=0)
     # Date
-    date = models.DateField(auto_now=True)
+    date = models.DateField(null=True,blank=True)
     # Notes
     notes = models.CharField(max_length=400,null=True,blank=True)
 
@@ -485,7 +484,7 @@ class Reciept(models.Model):
 # /Done Update MoneyFund by Reciept/
 @receiver(post_save,sender=Reciept)
 def update_money_on_reciepts(sender,instance,**kwargs):
-    money_fund = MoneyFund.objects.first()
+    money_fund = MoneyFund.objects.get(user=instance.user)
 
     if not money_fund:
         money_fund = MoneyFund.objects.create(permanant_fund = 0,sells_fund = 0)
@@ -495,7 +494,7 @@ def update_money_on_reciepts(sender,instance,**kwargs):
 
 @receiver(post_delete,sender=Reciept)
 def update_money_delete_on_reciepts(sender,instance,**kwargs):
-    money_fund = MoneyFund.objects.first()
+    money_fund = MoneyFund.objects.get(user=instance.user)
 
     if money_fund:
         money_fund.permanant_fund += instance.total
@@ -506,7 +505,7 @@ def update_money_ediut_on_reciepts(sender,instance,**kwargs):
     if instance.pk:
         old_instance = Reciept.objects.get(pk=instance.pk)
         old_total = old_instance.total
-        money_fund = MoneyFund.objects.first()
+        money_fund = MoneyFund.objects.get(user=instance.user)
         if money_fund:
             money_fund.permanant_fund += old_total
             money_fund.save()
@@ -643,7 +642,7 @@ class Payment(models.Model):
 # /Done Update MoneyFund by Payment/
 @receiver(post_save,sender=Payment)
 def update_money_on_payment (sender,instance,**kwargs):
-    money_fund = MoneyFund.objects.first()
+    money_fund = MoneyFund.objects.get(user=instance.user)
     
     if not money_fund:
         money_fund = MoneyFund.objects.create(permanant_fund = 0,sells_fund = 0)
@@ -653,7 +652,7 @@ def update_money_on_payment (sender,instance,**kwargs):
 
 @receiver(post_delete,sender=Payment)
 def update_money_delete_on_payment (sender,instance,**kwargs):
-    money_fund = MoneyFund.objects.first()
+    money_fund = MoneyFund.objects.get(user=instance.user)
     
     if money_fund:
         money_fund.permanant_fund += instance.total
@@ -665,7 +664,7 @@ def update_money_on_edit(sender,instance,**kwargs):
     if instance.pk:
         old_instance = Payment.objects.get(pk=instance.pk)
         old_total = old_instance.total
-        money_fund = MoneyFund.objects.first()
+        money_fund = MoneyFund.objects.get(user=instance.user)
         if money_fund:
             money_fund.permanant_fund += old_total
             money_fund.save()
@@ -698,7 +697,7 @@ class Inventory(models.Model):
     def calculate_inventory(self):
         # Retrieve initial values
         self.initial_countity = self.supply.countity
-        money_fund = MoneyFund.objects.first()
+        money_fund = MoneyFund.objects.get(user=self.user)
         self.initial_fund = money_fund.sells_fund if money_fund else 0
 
         # Retrieve data from the models
@@ -779,7 +778,7 @@ def inventory_post_save(sender, instance, created, **kwargs):
 #         instance.supply.countity += sales - purchases + unpaid_debts + dispatched_countity
 #         instance.supply.save()
 
-#         money_fund = MoneyFund.objects.first()
+#         money_fund = MoneyFund.objects.get(user=instance.user)
 #         if money_fund:
 #             money_fund.sells_fund -= old_instance.final_fund - old_instance.initial_fund - dispatched_value
 #             money_fund.save()

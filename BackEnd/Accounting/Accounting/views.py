@@ -1,5 +1,3 @@
-import stat
-from numpy import double
 import pandas as pd
 import logging
 from django.http import HttpResponse
@@ -116,6 +114,9 @@ def setupAccount(request,username):
         if employees:
             for employee in employees:
                 Employee.objects.create(user=user, employee_name=employee)
+        
+        if budget:
+            MoneyFund.objects.create(user=user,sells_fund=0,permanant_fund= budget)
         
         return Response({'message': 'Setup successful!'}, status=status.HTTP_200_OK)
     except User.DoesNotExist:
@@ -1124,23 +1125,47 @@ def search_sells(request, username, query):
         logger.error(f"SearchTypesAndSupplies error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-api_view(['GET'])
-@permission_classes([IsAuthenticated]) 
-def get_fund(request,username):
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_fund(request, username):
     try:
         user_instance = User.objects.get(user_name=username)
-
-        if user_instance:
-           moneyfund_instance = MoneyFund.objects.get(user=user_instance)
-           serializer = MoneyFundSerializer(moneyfund_instance)
-
-           return Response({
-               "sellsFund": serializer.data.sells_fund,
-               "permaFund" : serializer.data.permanant_fund
-           },status=status.HTTP_200_OK)
+        moneyfund_instance = MoneyFund.objects.get(user=user_instance)
+        serializer = MoneyFundSerializer(moneyfund_instance)
+        logger.debug(f"Serialized data: {serializer.data}")
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     except User.DoesNotExist:
-        return Response({'Error':'User Does Not Exist'},status=status.HTTP_404_NOT_FOUND)
+        logger.error(f"User {username} does not exist")  # Debugging
+        return Response({'Error': 'User Does Not Exist'}, status=status.HTTP_404_NOT_FOUND)
+
+    except MoneyFund.DoesNotExist:
+        logger.error(f"MoneyFund does not exist for user {username}")  # Debugging
+        return Response({'Error': 'MoneyFund Does Not Exist for This User'}, status=status.HTTP_404_NOT_FOUND)
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def move_fund_fromSells_to_perma(request, username):
+    try:
+        sells_fund = int(request.data.get("sellsFund"))
+
+        user_instance = User.objects.get(user_name=username)
+        moneyfund_instance = MoneyFund.objects.get(user=user_instance)
+
+        moneyfund_instance.permanant_fund += sells_fund
+        moneyfund_instance.sells_fund = 0
+        moneyfund_instance.save()
+        
+
+        return Response({"Message":"Sells Fund Moved To Permanant Fund Successflly"}, status=status.HTTP_200_OK)
+
+    except User.DoesNotExist:
+        logger.error(f"User {username} does not exist")  # Debugging
+        return Response({'Error': 'User Does Not Exist'}, status=status.HTTP_404_NOT_FOUND)
+
+    except MoneyFund.DoesNotExist:
+        logger.error(f"MoneyFund does not exist for user {username}")  # Debugging
+        return Response({'Error': 'MoneyFund Does Not Exist for This User'}, status=status.HTTP_404_NOT_FOUND)
     
 #--------------------------------------------------------------------------
 # AI Integration

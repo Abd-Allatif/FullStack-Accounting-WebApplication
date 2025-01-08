@@ -1,8 +1,8 @@
 import google.generativeai as genai
 import ast
 import json
-from PIL import Image
 from Accounting.settings import GEMINI_API_KEY
+
 
 genai.configure(api_key=GEMINI_API_KEY)
 
