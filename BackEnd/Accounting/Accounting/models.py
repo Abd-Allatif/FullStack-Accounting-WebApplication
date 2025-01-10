@@ -5,6 +5,7 @@ from django.dispatch import receiver
 import bcrypt
 from django.utils.crypto import get_random_string
 from django.contrib.auth.models import BaseUserManager,AbstractBaseUser,PermissionsMixin
+from .calculations import calculateTotalPrice
 
 # All Models Have Been Finnshed
 
@@ -164,8 +165,8 @@ def update_supply_and_fund(sender, instance, created, **kwargs):
 
             # Update money fund
             money_fund = MoneyFund.objects.get(user=instance.user)
-            if money_fund.permanant_fund >= (countity * buy_price):
-                money_fund.permanant_fund -= (countity * buy_price)
+            if money_fund.permanant_fund >= calculateTotalPrice(countity,supply.unit, buy_price):
+                money_fund.permanant_fund -= calculateTotalPrice(countity,supply.unit, buy_price)
                 money_fund.save()
             else:
                 raise ValueError("Not enough funds")
@@ -185,7 +186,7 @@ def handle_dispatch_deletion(sender, instance, **kwargs):
 
     # Revert money fund
     money_fund = MoneyFund.objects.get(user=instance.user)
-    money_fund.permanant_fund += (countity * buy_price)
+    money_fund.permanant_fund += calculateTotalPrice(countity,supply.unit, buy_price)
     money_fund.save()
 
 
@@ -206,10 +207,11 @@ def handle_dispatch_update(sender, instance, **kwargs):
             supply.countity -= countity_difference
             supply.save()
 
+            
             # Update money fund
             money_fund = MoneyFund.objects.get(user=instance.user)
-            if money_fund.permanant_fund + (original.countity * original.buy_price) >= (instance.countity * instance.buy_price):
-                money_fund.permanant_fund -= (countity_difference * instance.buy_price)
+            if money_fund.permanant_fund + calculateTotalPrice(original.countity ,supply.unit,  original.buy_price) >= calculateTotalPrice(instance.countity ,supply.unit,  instance.buy_price):
+                money_fund.permanant_fund -= calculateTotalPrice(countity_difference ,supply.unit,  instance.buy_price)
                 money_fund.save()
 
             else:

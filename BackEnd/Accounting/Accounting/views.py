@@ -1,3 +1,4 @@
+from copyreg import dispatch_table
 import pandas as pd
 import logging
 from django.http import HttpResponse
@@ -1166,6 +1167,126 @@ def move_fund_fromSells_to_perma(request, username):
     except MoneyFund.DoesNotExist:
         logger.error(f"MoneyFund does not exist for user {username}")  # Debugging
         return Response({'Error': 'MoneyFund Does Not Exist for This User'}, status=status.HTTP_404_NOT_FOUND)
+    
+
+@api_view(['POST','GET'])
+@permission_classes([IsAuthenticated])
+def dispatches(request,username):
+    try:
+        user = User.objects.get(user_name = username)
+
+        if request.method == 'POST':
+            user_data = request.data.get('user')
+            supplies = request.data.get('supply')
+            countity = int(request.data.get('countity'))
+            price = int(request.data.get('buy_price'))
+            date = request.data.get('dispatch_date')
+            reason = request.data.get('reason')
+            
+            if user_data:
+                user_instance = User.objects.get(user_name = user_data)
+                supplies_instance = Supplies.objects.get(supply_name = supplies,user = user_instance)
+                if supplies:
+                    DispatchSupply.objects.create(user=user_instance,supply=supplies_instance,
+                                                  countity=countity,buy_price=price,dispatch_date=date,
+                                                  reason=reason)
+                    return Response({'message': 'Setup successful!'}, status=status.HTTP_200_OK)
+                else:
+                    return Response({'message': 'Supply Does Not Exists Please Insert An Existing Supply'},status=status.HTTP_404_NOT_FOUND)
+                
+        
+        if request.method == 'GET':
+            dispatch = DispatchSupply.objects.filter(user=user)
+            serializer = DispatchSupplySerializer(dispatch, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        logger.error(f"User {username} not found.")
+        return Response({'error': 'User not found'})
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def edit_dispatches(request, username):
+    try:
+        user_instance = User.objects.get(user_name=username)
+
+        if request.method == 'PUT':
+            id = int(request.data.get('id'))
+            supplies = request.data.get('supply')
+            countity = int(request.data.get('countity'))
+            price = int(request.data.get('buy_price'))
+            date = request.data.get('dispatch_date')
+            reason = request.data.get('reason')
+
+            if supplies:
+                try:
+                    supplies_instance = Supplies.objects.get(supply_name=supplies,user=user_instance)
+
+                    dispatch_instance = DispatchSupply.objects.get(id=id, user=user_instance)
+                    dispatch_instance.delete()
+                    dispatch_instance.supply = supplies_instance
+                    dispatch_instance.countity = countity
+                    dispatch_instance.buy_price = price
+                    dispatch_instance.dispatch_date = date
+                    dispatch_instance.reason = reason
+                    dispatch_instance.save()
+                    
+                    return Response({'message': 'Reciept updated successfully!'}, status=status.HTTP_200_OK)
+                except Sell.DoesNotExist:
+                    return Response({'error': 'Reciept not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Supplies not provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        elif request.method == 'DELETE':
+            dispatch_to_delete = request.data.get('id')
+
+            if dispatch_to_delete:
+                try:
+                    dispatch_instance = DispatchSupply.objects.get(id=dispatch_to_delete, user=user_instance)
+                    dispatch_instance.delete()
+                    return Response({'message': 'Sell deleted successfully!'}, status=status.HTTP_200_OK)
+                except Sell.DoesNotExist:
+                    return Response({'error': 'Sell not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Sell ID not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'error': 'Invalid request method'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Sell error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_dispatches(request, username, query):
+    try:
+        user_instance = User.objects.get(user_name=username)
+        
+        # Find Supplies and Types matching the query
+        supplies = Supplies.objects.filter(supply_name__icontains=query)
+        
+        # Filter Reciept objects based on the found Supplies and Types
+        dispatches = DispatchSupply.objects.filter(
+            Q(supply__in=supplies) | Q(dispatch_date__icontains=query), user=user_instance
+        )
+        
+        dispatchserializer = DispatchSupplySerializer(dispatches, many=True)
+       
+        
+        return Response({
+            'dispatched': dispatchserializer.data,
+        }, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"SearchTypesAndSupplies error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 #--------------------------------------------------------------------------
 # AI Integration
