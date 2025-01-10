@@ -80,6 +80,11 @@ function CustomDrawer({ isOpen, toggleDrawer }) {
     navigate("/main/supplies")
   }
 
+  const goDisptach = () => {
+    navigate("dispatch-supplies")
+  }
+  
+
   const goReciepts = () => {
     navigate("/main/reciepts");
   }
@@ -108,6 +113,7 @@ function CustomDrawer({ isOpen, toggleDrawer }) {
               <button onClick={goPayments} className='btn'>Payments</button>
               <button onClick={goTypes} className='btn'>Types</button>
               <button onClick={goSupplies} className='btn'>Supplies</button>
+              <button onClick={goDisptach} className='btn'>Dispatch Supplies</button>
               <button onClick={goReciepts} className='btn'>Reciepts</button>
               <button onClick={goEmployee} className='btn'>Employees</button>
               <button className='btn'>Inventory</button>

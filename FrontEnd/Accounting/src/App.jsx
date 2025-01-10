@@ -15,8 +15,9 @@ import Employee from './Screens/MainScreen/Employee'
 import mathNotes from './Screens/ai/MathNotes'
 import NotFound from './Screens/Notfound/Notfound'
 import Loading from './Screens/LoadingScreen/Loading'
+import DispatchSupplies from './Screens/MainScreen/Dispatchsupplies'
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
-import { lazy,Suspense } from 'react';
+import { Suspense } from 'react';
 import { AuthProvider } from './Tools/AuthContext';
 import PrivateRoute from './Tools/PrivateRoute';
 
@@ -38,6 +39,7 @@ function App() {
             <Route path="/main/payments" element={<PrivateRoute element={Payments} />} />
             <Route path="/main/types" element={<PrivateRoute element={Types} />} />
             <Route path="/main/supplies" element={<PrivateRoute element={Supplies} />} />
+            <Route path="/main/dispatch-supplies" element={<PrivateRoute element={DispatchSupplies} />} />
             <Route path="/main/reciepts" element={<PrivateRoute element={Reciepts} />} />
             <Route path="/main/employees" element={<PrivateRoute element={Employee} />} />
             <Route path="/math-notes" element={<PrivateRoute element={mathNotes} />} />

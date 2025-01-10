@@ -40,7 +40,7 @@ const searchType = async (userData, query, setTypesData) => {
     });
 };
 
-const getSupplies = async (userData,setSuppliesData) => {
+const getSupplies = async (userData, setSuppliesData) => {
     // Refresh the access token
     const newAccessToken = await refreshAccessToken();
 
@@ -70,7 +70,7 @@ const searchBy_Supplies_Types = async (userData, query, setSuppliesData, setType
     });
 };
 
-const searchBy_Supplies= async (userData, query,type, setSuppliesData) => {
+const searchBy_Supplies = async (userData, query, type, setSuppliesData) => {
     const newAccessToken = await refreshAccessToken();
     await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-supplies/${type}/${query}`, {
         headers: {
@@ -82,7 +82,7 @@ const searchBy_Supplies= async (userData, query,type, setSuppliesData) => {
     }).catch(error => {
     });
 };
-const searchBy_only_Supplies= async (userData, query,setSuppliesData) => {
+const searchBy_only_Supplies = async (userData, query, setSuppliesData) => {
     const newAccessToken = await refreshAccessToken();
     await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-supplies/${query}`, {
         headers: {
@@ -95,20 +95,20 @@ const searchBy_only_Supplies= async (userData, query,setSuppliesData) => {
     });
 };
 
-const getReciepts = async (userData,setRecieptsData) => {
-        // Refresh the access token
-        const newAccessToken = await refreshAccessToken();
-    
-        await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/buy-supplies/`, {
-            headers: {
-                'Authorization': `Bearer ${newAccessToken}`,
-                'Content-Type': 'application/json'
-            }
-        }).then(response => {
-            setRecieptsData(Array.isArray(response.data) ? response.data : [])
-        }).catch(error => {
-            alert("An error happened while fetching types. Please try again.");
-        });
+const getReciepts = async (userData, setRecieptsData) => {
+    // Refresh the access token
+    const newAccessToken = await refreshAccessToken();
+
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/buy-supplies/`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setRecieptsData(Array.isArray(response.data) ? response.data : [])
+    }).catch(error => {
+        alert("An error happened while fetching types. Please try again.");
+    });
 };
 
 const search_Reciepts = async (userData, query, setRecieptsData) => {
@@ -241,7 +241,7 @@ const searchPayment = async (userData, query, setPaymentData) => {
     });
 };
 
-const getCustomerSell = async (userData,setCustomerSellData) => {
+const getCustomerSell = async (userData, setCustomerSellData) => {
     // Refresh the access token
     const newAccessToken = await refreshAccessToken();
 
@@ -271,7 +271,7 @@ const search_CustomerSells = async (userData, query, setCustomerSellData) => {
     });
 };
 
-const getSell = async (userData,setSellData) => {
+const getSell = async (userData, setSellData) => {
     // Refresh the access token
     const newAccessToken = await refreshAccessToken();
 
@@ -288,19 +288,48 @@ const getSell = async (userData,setSellData) => {
 };
 
 const search_sell = async (userData, query, setSellData) => {
-const newAccessToken = await refreshAccessToken();
-await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-sell/${query}`, {
-    headers: {
-        'Authorization': `Bearer ${newAccessToken}`,
-        'Content-Type': 'application/json'
-    }
-}).then(response => {
-    setSellData(Array.isArray(response.data.sells) ? response.data.sells : []);
-}).catch(error => {
-    console.error("Error fetching reciepts or types:", error);
-});
+    const newAccessToken = await refreshAccessToken();
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-sell/${query}`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setSellData(Array.isArray(response.data.sells) ? response.data.sells : []);
+    }).catch(error => {
+        console.error("Error fetching reciepts or types:", error);
+    });
 };
 
+const getDispatches = async (userData,setDispatchesData) => {
+    // Refresh the access token
+    const newAccessToken = await refreshAccessToken();
+
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/dispatch-supplies/`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setDispatchesData(Array.isArray(response.data) ? response.data : [])
+    }).catch(error => {
+        alert("An error happened while fetching types. Please try again.");
+    });
+};
+
+const search_dispatched = async (userData, query, setDispatchedData) => {
+    const newAccessToken = await refreshAccessToken();
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-dispatched/${query}`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setDispatchedData(Array.isArray(response.data.dispatched) ? response.data.dispatched : []);
+    }).catch(error => {
+        console.error("Error fetching reciepts or types:", error);
+    });
+};
 
 export {
     getTypes,
@@ -324,4 +353,6 @@ export {
     search_CustomerSells,
     getSell,
     search_sell,
+    getDispatches,
+    search_dispatched,
 };
