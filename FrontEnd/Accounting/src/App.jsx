@@ -16,6 +16,7 @@ import mathNotes from './Screens/ai/MathNotes'
 import NotFound from './Screens/Notfound/Notfound'
 import Loading from './Screens/LoadingScreen/Loading'
 import DispatchSupplies from './Screens/MainScreen/Dispatchsupplies'
+import Inventory from './Screens/MainScreen/Inventory'
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import { Suspense } from 'react';
 import { AuthProvider } from './Tools/AuthContext';
@@ -42,6 +43,7 @@ function App() {
             <Route path="/main/dispatch-supplies" element={<PrivateRoute element={DispatchSupplies} />} />
             <Route path="/main/reciepts" element={<PrivateRoute element={Reciepts} />} />
             <Route path="/main/employees" element={<PrivateRoute element={Employee} />} />
+            <Route path="/main/inventory" element={<PrivateRoute element={Inventory} />} />
             <Route path="/math-notes" element={<PrivateRoute element={mathNotes} />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

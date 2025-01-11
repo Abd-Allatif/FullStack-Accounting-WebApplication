@@ -331,6 +331,22 @@ const search_dispatched = async (userData, query, setDispatchedData) => {
     });
 };
 
+const getInventories = async (userData,setInventoryData) => {
+    // Refresh the access token
+    const newAccessToken = await refreshAccessToken();
+
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/generate-inventory/`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setInventoryData(Array.isArray(response.data) ? response.data : [])
+    }).catch(error => {
+        alert("An error happened while fetching types. Please try again.");
+    });
+};
+
 export {
     getTypes,
     debounce,
@@ -355,4 +371,5 @@ export {
     search_sell,
     getDispatches,
     search_dispatched,
+    getInventories
 };

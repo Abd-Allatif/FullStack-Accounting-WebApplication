@@ -8,7 +8,6 @@ import {
     searchBy_only_Supplies, getSell,
     search_sell,
 } from '../../Tools/BackendServices'
-import Loader from '../../Tools/Loader'
 import Drawer from '../../Tools/Drawer'
 import {
     Table,
