@@ -1288,6 +1288,37 @@ def search_dispatches(request, username, query):
         logger.error(f"SearchTypesAndSupplies error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+@api_view(['POST','GET'])
+@permission_classes([IsAuthenticated])
+def generate_inventory (request,username):
+    try:
+        user = User.objects.get(user_name = username)
+
+        if request.method == 'POST':
+           user_data = request.data.get('user')
+           supply = request.data.get('supply')
+           start_date = request.data.get('start_date')
+           end_date = request.data.get('end_date')
+
+           if user_data:
+               user_instance = User.objects.get(user_name = user_data)
+               supply_instance = Supplies.objects.get(user=user_instance,supply_name=supply)
+               Inventory.objects.create(user=user_instance,supply=supply_instance,start_date=start_date,end_date=end_date)
+
+               return Response({'Message':'Inventory Generated Successfully'},status=status.HTTP_200_OK)                
+        
+        if request.method == 'GET':
+            inventory = Inventory.objects.filter(user=user)
+            serializer = InventorySerializer(inventory, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        logger.error(f"User {username} not found.")
+        return Response({'error': 'User not found'})
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
 #--------------------------------------------------------------------------
 # AI Integration
 

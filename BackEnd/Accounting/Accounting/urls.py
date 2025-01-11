@@ -48,6 +48,7 @@ urlpatterns = [
     path('api/users/<str:username>/search-dispatched/<str:query>/', views.search_dispatches),
     path('api/users/<str:username>/money-funds/', views.get_fund),
     path('api/users/<str:username>/move-sells-funds/', views.move_fund_fromSells_to_perma),
+     path('api/users/<str:username>/generate-inventory/', views.generate_inventory),
     path('api/users/calculate/', views.ImageAnalysisView.as_view()),
     path('api/data/export/export-excel/<str:username>/', views.export_all_data_excel, name='export_all_data_excel'),
     path('api/data/export/export-pdf/<str:username>/', views.export_all_data_pdf, name='export_all_data_pdf'),

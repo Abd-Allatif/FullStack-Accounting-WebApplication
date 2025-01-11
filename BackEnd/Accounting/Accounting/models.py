@@ -676,7 +676,7 @@ def update_money_on_edit(sender,instance,**kwargs):
 
 class Inventory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    supply = models.ForeignKey('Supplies', on_delete=models.CASCADE)
+    supply = models.ForeignKey(Supplies, on_delete=models.CASCADE)
     initial_countity = models.IntegerField(blank=True)
     final_countity = models.IntegerField(blank=True)
     initial_fund = models.IntegerField(blank=True)
