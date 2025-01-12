@@ -1051,12 +1051,14 @@ def edit_sells(request, username):
         user_instance = User.objects.get(user_name=username)
 
         if request.method == 'PUT':
-            id = int(request.data.get('id'))
+            id = request.data.get('id')
             supplies = request.data.get('supply')
             countity = int(request.data.get('countity'))
             price = int(request.data.get('price'))
             date = request.data.get('date')
             notes = request.data.get('notes')
+
+            print(id,supplies,countity,price,date,notes)
 
             if supplies:
                 try:
@@ -1317,6 +1319,56 @@ def generate_inventory (request,username):
         return Response({'error': 'User not found'})
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_inventory (request,username):
+    try:
+        user_instance = User.objects.get(user_name = username)
+
+        inventory_to_delete = request.data.get('id')
+
+        if inventory_to_delete:
+            try:
+                inventory_instance = Inventory.objects.get(id=inventory_to_delete, user=user_instance)
+                inventory_instance.delete()
+                return Response({'message': 'Inventory deleted successfully!'}, status=status.HTTP_200_OK)
+            except Inventory.DoesNotExist:
+                return Response({'error': 'Inventory not found'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({'error': 'Inventory ID not provided'}, status=status.HTTP_400_BAD_REQUEST)
+    except User.DoesNotExist:
+        logger.error(f"User {username} not found.")
+        return Response({'error': 'User not found'})
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_inventory(request, username, query):
+    try:
+        user_instance = User.objects.get(user_name=username)
+        
+        # Find Supplies and Types matching the query
+        supplies = Supplies.objects.filter(supply_name__icontains=query)
+        
+        # Filter Reciept objects based on the found Supplies and Types
+        inventory = Inventory.objects.filter(
+            Q(supply__in=supplies) | Q(inventory_date__icontains=query) | Q(start_date__icontains=query)
+            | Q(end_date__icontains=query), user=user_instance
+        )
+        
+        inventorySerializer = InventorySerializer(inventory, many=True)
+       
+        return Response({
+            'dispatched': inventorySerializer.data,
+        }, status=status.HTTP_200_OK)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"SearchTypesAndSupplies error: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 #--------------------------------------------------------------------------
