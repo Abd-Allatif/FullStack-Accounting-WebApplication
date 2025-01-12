@@ -760,10 +760,8 @@ dropdown-item-focused {
 
 @media (min-width: 768px) and (max-width: 1024px){
     .TopBarText{
-        margin-left:1em;
-        text-align:start;
+        margin-left:1em;  
     }
-
     .ItemsContainer{
         margin-top: 3em;
         margin-left:0.5em;
@@ -797,7 +795,7 @@ dropdown-item-focused {
 @media (max-width: 768px) {
     .TopBarText{
         margin-left:1em;
-        text-align:start;
+       
     }
 
     .Container{

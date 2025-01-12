@@ -81,7 +81,7 @@ function CustomDrawer({ isOpen, toggleDrawer }) {
   }
 
   const goDisptach = () => {
-    navigate("dispatch-supplies")
+    navigate("/main/dispatch-supplies")
   }
   
 

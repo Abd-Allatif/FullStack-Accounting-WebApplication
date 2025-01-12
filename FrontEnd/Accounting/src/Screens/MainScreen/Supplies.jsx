@@ -8,7 +8,6 @@ import {
     searchBy_Supplies_Types,
     getSupplies,
 } from '../../Tools/BackendServices'
-import Loader from '../../Tools/Loader'
 import Drawer from '../../Tools/Drawer'
 import { units } from '../../Tools/Math';
 import {
@@ -24,6 +23,7 @@ import { BackGround, Card, InputField, Button, SearchField, TopBar } from '../..
 function Supplies() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [typesData, setTypesData] = useState([]);
+    const [editTypesData, setEditTypesData] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const [suppliesData, setSuppliesData] = useState([]);
@@ -36,8 +36,8 @@ function Supplies() {
     const [dropdownVisible, setDropdownVisible] = useState(false);
     const [search, setSearch] = useState('');
     const [editSupplyId, setEditSupplyId] = useState(null);
+    const [editSearchType, setEditSearchType] = useState('');
     const [editSupplyValue, setEditSupplyValue] = useState({
-        type: '',
         supply_name: '',
         unit: '',
         countity: '',
@@ -86,6 +86,26 @@ function Supplies() {
         }
     };
 
+    const searchfetchEditTypes = async (query = '') => {
+        searchType(userData, query, setEditTypesData);
+    };
+
+    const debouncedFetchEditTypes = useCallback(debounce(searchfetchEditTypes, 300), []);
+
+    const handleSearchEditTypeChange = (event) => {
+        const query = event.target.value;
+        setEditSearchType(query);
+        debouncedFetchEditTypes(query);
+        if (query == "" || query == null) {
+            setEditTypesData([]);
+        }
+    };
+
+    const handleEditTypeSelect = (type) => {
+        setEditSearchType(type);
+        setEditTypesData([]);
+    };
+
     const searchFetchTypesAndSupplies = async (query = '') => {
         searchBy_Supplies_Types(userData, query, setSuppliesData, setTypesData)
     };
@@ -127,6 +147,26 @@ function Supplies() {
                 });
             } else if (event.key === 'Enter' && focusedIndex >= 0) {
                 handleTypeSelect(typesData[focusedIndex].type);
+            }
+        }
+    };
+
+    const handleEditTypeKeyDown = (event) => {
+        if (editTypesData.length > 0) {
+            if (event.key === 'ArrowDown') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex + 1) % editTypesData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'ArrowUp') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex - 1 + editTypesData.length) % editTypesData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'Enter' && focusedIndex >= 0) {
+                handleEditTypeSelect(editTypesData[focusedIndex].type);
             }
         }
     };
@@ -210,6 +250,7 @@ function Supplies() {
             await axios.put(`${import.meta.env.VITE_API_URL}/${userData.user_name}/edit-supplies/`, {
                 ...editSupplyValue,
                 newSupply: newSupply,
+                type: editSearchType,
             }, {
                 headers: {
                     'Authorization': `Bearer ${newAccessToken}`,
@@ -325,12 +366,25 @@ function Supplies() {
                         <TableRow key={index}>
                             <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
                                 {editSupplyId === supply.supply_name ? (
-                                    <InputField
-                                        className="Table-Input-Field"
-                                        type="text"
-                                        value={editSupplyValue.type}
-                                        onChange={(e) => setEditSupplyValue({ ...editSupplyValue, type: e.target.value })}
-                                    />
+                                    <div className='editTypeContainer'>
+                                        <InputField
+                                            className="Table-Input-Field"
+                                            type="text"
+                                            value={editSearchType}
+                                            onChange={handleSearchEditTypeChange}
+                                            onKeyDown={handleEditTypeKeyDown}
+                                        />
+                                        {editTypesData.length > 0 && (
+                                            editSearchType && <div className="dropdown" ref={dropdownRef}>
+                                                {editTypesData.map((type, index) => (
+                                                    <div key={index} className={`dropdown-item${index === focusedIndex ? '-focused' : ''}`} onClick={() => handleEditTypeSelect(type.type)}>
+                                                        {type.type}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                    </div>
                                 ) : (
                                     supply.type
                                 )}
@@ -402,8 +456,8 @@ function Supplies() {
                                     <Button className='TableButton' onClick={() => {
                                         setNewSupply(supply.supply_name)
                                         setEditSupplyId(supply.supply_name);
+                                        setEditSearchType(supply.type);
                                         setEditSupplyValue({
-                                            type: supply.type,
                                             supply_name: supply.supply_name,
                                             unit: supply.unit,
                                             countity: supply.countity,
@@ -418,7 +472,7 @@ function Supplies() {
                     ))}
                 </TableBody>
             </Table>
-    </BackGround>
+        </BackGround>
     </StyledWrapper >)
 }
 
@@ -495,6 +549,10 @@ dropdown-item-focused {
 
 .dropdown-item:hover {
     background: #444;
+}
+
+.editTypeContainer{
+    position:relative;
 }
 
 .Secondrow{
@@ -641,11 +699,6 @@ dropdown-item-focused {
 }
 
 @media (min-width: 768px) and (max-width: 1024px){
-    .TopBarText{
-        margin-left:1em;
-        text-align:start;
-    }
-
     .ItemsContainer{
         margin-top: 3em;
         margin-left:0.5em;
@@ -677,11 +730,6 @@ dropdown-item-focused {
   
 
 @media (max-width: 768px) {
-    .TopBarText{
-        margin-left:1em;
-        text-align:start;
-    }
-
     .Container{
         overflow:hidden;
     }

@@ -407,7 +407,6 @@ const StyledWrapper = styled.div`
 @media (min-width: 768px) and (max-width: 1024px){
     .TopBarText{
         margin-left:1em;
-        text-align:start;
     }
 
     .ItemsContainer{
@@ -437,7 +436,6 @@ const StyledWrapper = styled.div`
 @media (max-width: 768px) {
     .TopBarText{
         margin-left:1em;
-        text-align:start;
     }
 
     .ItemsContainer{

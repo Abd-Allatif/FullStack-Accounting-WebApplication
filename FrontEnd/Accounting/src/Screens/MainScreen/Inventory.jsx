@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios';
 import { BackGround, Card, InputField, Button, SearchField, TopBar } from '../../Tools/Components'
 import { refreshAccessToken } from '../../Tools/authService'
-import { debounce, getInventories, searchBy_only_Supplies } from '../../Tools/BackendServices'
+import { debounce, getInventories, searchBy_only_Supplies ,search_inventory} from '../../Tools/BackendServices'
 import Drawer from '../../Tools/Drawer'
 import styled from 'styled-components';
 import {
@@ -26,6 +26,7 @@ const Inventory = () => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [inventoryAdded, setInventoryAdded] = useState('');
+    const [searchInventory,setSearchInventory] = useState('');
 
     const userData = JSON.parse(localStorage.getItem('user_data'));
 
@@ -107,8 +108,27 @@ const Inventory = () => {
         }
     };
 
+    const searchFetchInventory = async (query = '') => {
+        search_inventory(userData, query, setInventories)
+    };
+
+    const debouncedFetchInventory = useCallback(debounce(searchFetchInventory, 300), []);
+
+    const handleInventorySearch = (event) => {
+        const query = event.target.value;
+        setSearchInventory(query);
+        debouncedFetchInventory(query);
+        if (query === "" || query === null) {
+            setdispatchData([]);
+        }
+    };
+
     const fetchInventories = () => {
         getInventories(userData, setInventories)
+    }
+
+    const clearBtn = () => {
+        fetchInventories();
     }
 
     useEffect(() => {
@@ -140,7 +160,18 @@ const Inventory = () => {
     };
 
     const deleteInventory = async (inventoryID) => {
-
+        const newAccessToken = await refreshAccessToken();
+        await axios.delete(`${import.meta.env.VITE_API_URL}/${userData.user_name}/delete-inventory/`, {
+            data: { id: inventoryID },
+            headers: {
+                'Authorization': `Bearer ${newAccessToken}`,
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            fetchInventories();
+        }).catch(error => {
+            alert("An Error Happened. Please Wait and Try Again.");
+        });
     };
 
     return (
@@ -189,7 +220,7 @@ const Inventory = () => {
                     </div>
                 </Card>
 
-                <SearchField />
+                <SearchField value={searchInventory} onChange={handleInventorySearch} onClick={clearBtn} />
 
                 <Table className='Table'>
                     <TableHeader className='TableHeader'>
@@ -331,19 +362,18 @@ const StyledWrapper = styled.div`
     align-items:center;
 
     overflow-x:auto;
-    overflow-y:auto;
 
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     background-color :hsla(0, 0%, 9%, 0.788);
-    padding: 4em;
+    padding: 2em;
     border: 1px solid #ccc;
 }
 
 .TableContainer{
-    width:auto;
+    width:100vw;
     height:auto;
 
     overflow-y:auto;
@@ -526,11 +556,6 @@ dropdown-item-focused {
 }
 
 @media (min-width: 768px) and (max-width: 1024px){
-    .TopBarText{
-        margin-left:1em;
-        text-align:start;
-    }
-
     .ItemsContainer{
         margin-top: 5em;
         margin-left:0.5em;
@@ -541,6 +566,12 @@ dropdown-item-focused {
 
         width:60vw;
         height: 40vh;
+    }
+
+    .SubScreen{
+        overflow-x:auto;
+        
+        border: 1px solid #ccc;
     }
 
     .Firstrow{   
@@ -556,11 +587,6 @@ dropdown-item-focused {
   
 
 @media (max-width: 768px) {
-    .TopBarText{
-        margin-left:1em;
-        text-align:start;
-    }
-
     .ItemsContainer{
         margin-top: 5em;
         margin-left:0.5em;

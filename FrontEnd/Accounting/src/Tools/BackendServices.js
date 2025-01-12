@@ -347,6 +347,20 @@ const getInventories = async (userData,setInventoryData) => {
     });
 };
 
+const search_inventory = async (userData, query, setInventoryData) => {
+    const newAccessToken = await refreshAccessToken();
+    await axios.get(`${import.meta.env.VITE_API_URL}/${userData.user_name}/search-inventory/${query}`, {
+        headers: {
+            'Authorization': `Bearer ${newAccessToken}`,
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        setInventoryData(Array.isArray(response.data.dispatched) ? response.data.dispatched : []);
+    }).catch(error => {
+        console.error("Error fetching reciepts or types:", error);
+    });
+};
+
 export {
     getTypes,
     debounce,
@@ -371,5 +385,6 @@ export {
     search_sell,
     getDispatches,
     search_dispatched,
-    getInventories
+    getInventories,
+    search_inventory,
 };

@@ -2,7 +2,7 @@ import styled from 'styled-components';
 import axios from 'axios';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'
-import { refreshAccessToken ,logout} from '../../Tools/authService'
+import { refreshAccessToken, logout } from '../../Tools/authService'
 import {
     debounce,
     searchBy_only_Supplies, getSell,
@@ -23,6 +23,7 @@ function MainSellScreen() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [searchSupplies, setSearchSupplies] = useState("");
     const [suppliesData, setSuppliesData] = useState([]);
+    const [editsuppliesData, seteditSuppliesData] = useState([]);
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const [countity, setCountity] = useState('');
     const [price, setPrice] = useState('');
@@ -37,9 +38,9 @@ function MainSellScreen() {
         notes: '',
     }]);
     const [editSellID, setEditSellID] = useState(null);
+    const [searchEditSupplies,setSearchEditSupplies] = useState('');
     const [editsellData, setEditsellData] = useState({
         id: '',
-        supply: '',
         countity: '',
         price: '',
         date: '',
@@ -136,6 +137,46 @@ function MainSellScreen() {
         }
     };
 
+    const searchForEditSupplies = async (query = '') => {
+        searchBy_only_Supplies(userData, query, seteditSuppliesData);
+    };
+
+    const debouncedFetchEditSupplies = useCallback(debounce(searchForEditSupplies, 300), []);
+
+    const handleSearchEditSupplies = (event) => {
+        const query = event.target.value;
+        setSearchEditSupplies(query);
+        debouncedFetchEditSupplies(query);
+        if (query == "" || query == null) {
+            seteditSuppliesData([]);
+        }
+    };
+
+    const handleEditSuppliesSelect = (supply) => {
+        setSearchEditSupplies(supply);
+        seteditSuppliesData([]);
+    };
+
+    const handleEditSuppliesKeyDown = (event) => {
+        if (editsuppliesData.length > 0) {
+            if (event.key === 'ArrowDown') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex + 1) % editsuppliesData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'ArrowUp') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex - 1 + editsuppliesData.length) % editsuppliesData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'Enter' && focusedIndex >= 0) {
+                handleEditSuppliesSelect(editsuppliesData[focusedIndex].supply_name);
+            }
+        }
+    };
+
     const searchFetchSells = async (query = '') => {
         search_sell(userData, query, setSellData)
     };
@@ -206,8 +247,10 @@ function MainSellScreen() {
         try {
             const newAccessToken = await refreshAccessToken();
 
+            console.log(editsellData);
             await axios.put(`${import.meta.env.VITE_API_URL}/${userData.user_name}/edit-sell/`, {
                 ...editsellData,
+                supply: searchEditSupplies
             }, {
                 headers: {
                     'Authorization': `Bearer ${newAccessToken}`,
@@ -326,12 +369,28 @@ function MainSellScreen() {
                         <TableRow key={index}>
                             <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
                                 {editSellID === sell.id ? (
-                                    <InputField
-                                        className="Table-Input-Field"
-                                        type="text"
-                                        value={editsellData.supply}
-                                        onChange={(e) => setEditsellData({ ...editsellData, supply: e.target.value })}
-                                    />
+                                    <div className='editSupplyContainer'>
+                                        <InputField
+                                            className="Table-Input-Field"
+                                            type="text"
+                                            value={searchEditSupplies}
+                                            onChange={handleSearchEditSupplies}
+                                            onKeyDown={handleEditSuppliesKeyDown}
+                                        />
+                                        {
+                                           searchEditSupplies && <>
+                                                {editsuppliesData.length > 0 && (
+                                                   searchEditSupplies && <div className="dropdown" ref={dropdownRef}>
+                                                        {editsuppliesData.map((supply, index) => (
+                                                            <div key={index} className={`dropdown-item${index === focusedIndex ? '-focused' : ''}`} onClick={() => handleEditSuppliesSelect(supply.supply_name)}>
+                                                                {supply.supply_name}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </>
+                                        }
+                                    </div>
                                 ) : (
                                     sell.supply
                                 )}
@@ -393,9 +452,9 @@ function MainSellScreen() {
                                 ) : (
                                     <Button className='TableButton' onClick={() => {
                                         setEditSellID(sell.id);
+                                        setSearchEditSupplies(sell.supply);
                                         setEditsellData({
                                             id: sell.id,
-                                            supply: sell.supply,
                                             countity: sell.countity,
                                             price: sell.price,
                                             date: sell.date,
@@ -463,6 +522,10 @@ header{
     .supplyField{
         position: relative;
     }
+}
+
+.editSupplyContainer{
+    position:relative;
 }
 
 .dropdown {
@@ -638,8 +701,7 @@ dropdown-item-focused {
 
 @media (min-width: 768px) and (max-width: 1024px){
     .TopBarText{
-        margin-left:1em;
-        text-align:start;
+        margin-left:1.5em;
     }
 
     .ItemsContainer{
@@ -674,8 +736,7 @@ dropdown-item-focused {
 
 @media (max-width: 768px) {
     .TopBarText{
-        margin-left:1em;
-        text-align:start;
+        margin-left:1.5em;
     }
 
     .Container{
