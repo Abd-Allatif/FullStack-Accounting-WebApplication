@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { refreshAccessToken } from '../../Tools/authService'
 import {
     debounce, searchCustomer,
-    searchBy_only_Supplies, getCustomerSell,search_CustomerSells
+    searchBy_only_Supplies, getCustomerSell, search_CustomerSells
 } from '../../Tools/BackendServices'
 import Loader from '../../Tools/Loader'
 import Drawer from '../../Tools/Drawer'
@@ -25,6 +25,7 @@ function SellCustomer() {
     const [customerData, setcustomerData] = useState([]);
     const [searchSupplies, setSearchSupplies] = useState("");
     const [suppliesData, setSuppliesData] = useState([]);
+    const [editsuppliesData, seteditSuppliesData] = useState([]);
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const [countity, setCountity] = useState('');
     const [price, setPrice] = useState('');
@@ -49,7 +50,6 @@ function SellCustomer() {
         id: '',
         customer_name: '',
         date_of_buying: '',
-        supply: '',
         price: '',
         countity: '',
         total: '',
@@ -57,6 +57,7 @@ function SellCustomer() {
         paid: '',
         notes: '',
     });
+    const [searchEditSupplies,setSearchEditSupplies] = useState('');
     const [searchCustomersAndSupplies, setsearchCustomersAndSupplies] = useState('');
 
     const userData = JSON.parse(localStorage.getItem('user_data'));
@@ -198,6 +199,47 @@ function SellCustomer() {
         }
     };
 
+
+    const searchForEditSupplies = async (query = '') => {
+        searchBy_only_Supplies(userData, query, seteditSuppliesData);
+    };
+
+    const debouncedFetchEditSupplies = useCallback(debounce(searchForEditSupplies, 300), []);
+
+    const handleSearchEditSupplies = (event) => {
+        const query = event.target.value;
+        setSearchEditSupplies(query);
+        debouncedFetchEditSupplies(query);
+        if (query == "" || query == null) {
+            seteditSuppliesData([]);
+        }
+    };
+
+    const handleEditSuppliesSelect = (supply) => {
+        setSearchEditSupplies(supply);
+        seteditSuppliesData([]);
+    };
+
+    const handleEditSuppliesKeyDown = (event) => {
+        if (editsuppliesData.length > 0) {
+            if (event.key === 'ArrowDown') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex + 1) % editsuppliesData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'ArrowUp') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex - 1 + editsuppliesData.length) % editsuppliesData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'Enter' && focusedIndex >= 0) {
+                handleEditSuppliesSelect(editsuppliesData[focusedIndex].supply_name);
+            }
+        }
+    };
+
     const send_data = async (event) => {
         event.preventDefault();
 
@@ -264,6 +306,7 @@ function SellCustomer() {
 
             await axios.put(`${import.meta.env.VITE_API_URL}/${userData.user_name}/edit-customer-sell/`, {
                 ...editsellCustomerData,
+                supply:searchEditSupplies,
             }, {
                 headers: {
                     'Authorization': `Bearer ${newAccessToken}`,
@@ -279,7 +322,6 @@ function SellCustomer() {
                 id: '',
                 customer_name: '',
                 date_of_buying: '',
-                supply: '',
                 price: '',
                 countity: '',
                 total: '',
@@ -428,12 +470,28 @@ function SellCustomer() {
                             </TableCell>
                             <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
                                 {editSellCustomerID === customer.id ? (
-                                    <InputField
-                                        className="Table-Input-Field"
-                                        type="text"
-                                        value={editsellCustomerData.supply}
-                                        onChange={(e) => setEditsellCustomerData({ ...editsellCustomerData, supply: e.target.value })}
-                                    />
+                                    <div className="supplyContainer">
+                                        <InputField
+                                            className="Table-Input-Field"
+                                            type="text"
+                                            value={searchEditSupplies}
+                                            onChange={handleSearchEditSupplies}
+                                            onKeyDown={handleEditSuppliesKeyDown}
+                                        />
+                                        {
+                                            searchEditSupplies && <>
+                                                {editsuppliesData.length > 0 && (
+                                                    searchEditSupplies && <div className="dropdown" ref={dropdownRef}>
+                                                        {editsuppliesData.map((supply, index) => (
+                                                            <div key={index} className={`dropdown-item${index === focusedIndex ? '-focused' : ''}`} onClick={() => handleEditSuppliesSelect(supply.supply_name)}>
+                                                                {supply.supply_name}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </>
+                                        }
+                                    </div>
                                 ) : (
                                     customer.supply
                                 )}
@@ -510,11 +568,11 @@ function SellCustomer() {
                                 ) : (
                                     <Button className='TableButton' onClick={() => {
                                         seteditSellCustomerID(customer.id);
+                                        setSearchEditSupplies(customer.supply);
                                         setEditsellCustomerData({
                                             id: customer.id,
                                             customer_name: customer.customer_name,
                                             date_of_buying: customer.date_of_buying,
-                                            supply: customer.supply,
                                             price: customer.price,
                                             countity: customer.countity,
                                             total: customer.total,
@@ -585,6 +643,10 @@ header{
     .supplyField{
         position: relative;
     }
+}
+
+.supplyContainer{
+    position:relative;
 }
 
 .dropdown {

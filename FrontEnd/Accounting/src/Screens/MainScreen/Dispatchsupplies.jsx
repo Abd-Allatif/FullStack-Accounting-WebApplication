@@ -24,6 +24,7 @@ function DispatchSupplies() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [searchSupplies, setSearchSupplies] = useState("");
     const [suppliesData, setSuppliesData] = useState([]);
+    const [editsuppliesData, seteditSuppliesData] = useState([]);
     const [focusedIndex, setFocusedIndex] = useState(-1);
     const [countity, setCountity] = useState('');
     const [buy_price, setbuy_price] = useState('');
@@ -38,9 +39,9 @@ function DispatchSupplies() {
         reason: '',
     }]);
     const [editDispatchID, seteditDispatchID] = useState(null);
+    const [searchEditSupplies, setSearchEditSupplies] = useState('');
     const [editDispatchData, seteditDispatchData] = useState({
         id: '',
-        supply: '',
         countity: '',
         buy_price: '',
         dispatch_date: '',
@@ -105,6 +106,46 @@ function DispatchSupplies() {
                 });
             } else if (event.key === 'Enter' && focusedIndex >= 0) {
                 handleSuppliesSelect(suppliesData[focusedIndex].supply_name);
+            }
+        }
+    };
+
+    const searchForEditSupplies = async (query = '') => {
+        searchBy_only_Supplies(userData, query, seteditSuppliesData);
+    };
+
+    const debouncedFetchEditSupplies = useCallback(debounce(searchForEditSupplies, 300), []);
+
+    const handleSearchEditSupplies = (event) => {
+        const query = event.target.value;
+        setSearchEditSupplies(query);
+        debouncedFetchEditSupplies(query);
+        if (query == "" || query == null) {
+            seteditSuppliesData([]);
+        }
+    };
+
+    const handleEditSuppliesSelect = (supply) => {
+        setSearchEditSupplies(supply);
+        seteditSuppliesData([]);
+    };
+
+    const handleEditSuppliesKeyDown = (event) => {
+        if (editsuppliesData.length > 0) {
+            if (event.key === 'ArrowDown') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex + 1) % editsuppliesData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'ArrowUp') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex - 1 + editsuppliesData.length) % editsuppliesData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'Enter' && focusedIndex >= 0) {
+                handleEditSuppliesSelect(editsuppliesData[focusedIndex].supply_name);
             }
         }
     };
@@ -200,6 +241,7 @@ function DispatchSupplies() {
 
             await axios.put(`${import.meta.env.VITE_API_URL}/${userData.user_name}/edit-dispatches/`, {
                 ...editDispatchData,
+                supply: searchEditSupplies,
             }, {
                 headers: {
                     'Authorization': `Bearer ${newAccessToken}`,
@@ -318,12 +360,28 @@ function DispatchSupplies() {
                         <TableRow key={index}>
                             <TableCell className='TableCells' style={{ fontSize: '20px', padding: '10px' }}>
                                 {editDispatchID === dispatch.id ? (
-                                    <InputField
-                                        className="Table-Input-Field"
-                                        type="text"
-                                        value={editDispatchData.supply}
-                                        onChange={(e) => seteditDispatchData({ ...editDispatchData, supply: e.target.value })}
-                                    />
+                                    <div className='editSupplyContainer'>
+                                        <InputField
+                                            className="Table-Input-Field"
+                                            type="text"
+                                            value={searchEditSupplies}
+                                            onChange={handleSearchEditSupplies}
+                                            onKeyDown={handleEditSuppliesKeyDown}
+                                        />
+                                        {
+                                            searchEditSupplies && <>
+                                                {editsuppliesData.length > 0 && (
+                                                    searchEditSupplies && <div className="dropdown" ref={dropdownRef}>
+                                                        {editsuppliesData.map((supply, index) => (
+                                                            <div key={index} className={`dropdown-item${index === focusedIndex ? '-focused' : ''}`} onClick={() => handleEditSuppliesSelect(supply.supply_name)}>
+                                                                {supply.supply_name}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </>
+                                        }
+                                    </div>
                                 ) : (
                                     dispatch.supply
                                 )}
@@ -382,9 +440,9 @@ function DispatchSupplies() {
                                 ) : (
                                     <Button className='TableButton' onClick={() => {
                                         seteditDispatchID(dispatch.id);
+                                        setSearchEditSupplies(dispatch.supply);
                                         seteditDispatchData({
                                             id: dispatch.id,
-                                            supply: dispatch.supply,
                                             countity: dispatch.countity,
                                             buy_price: dispatch.buy_price,
                                             dispatch_date: dispatch.dispatch_date,
@@ -452,6 +510,10 @@ header{
     .supplyField{
         position: relative;
     }
+}
+
+.editSupplyContainer{
+    position:relative;
 }
 
 .dropdown {

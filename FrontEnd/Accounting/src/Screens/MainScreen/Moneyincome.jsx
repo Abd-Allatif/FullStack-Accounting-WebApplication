@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 import axios from 'axios';
-import { useState, useEffect, useCallback,useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom'
 import Loader from '../../Tools/Loader'
 import { refreshAccessToken } from '../../Tools/authService'
@@ -86,6 +86,22 @@ function MoneyIncome() {
         }
     };
 
+
+    const searchfetchEditCustomer = async (query = '') => {
+        searchCustomer(userData, query, setcustomerData);
+    };
+
+    const debouncedFetchEditCustomer = useCallback(debounce(searchfetchEditCustomer, 300), []);
+
+    const handleSearchEditCustomerChange = (event) => {
+        const query = event.target.value;
+        seteditIncome(query);
+        debouncedFetchEditCustomer(query);
+        if (query == "" || query == null) {
+            setcustomerData([]);
+        }
+    };
+
     const clear_btn = () => {
         fetchIncome();
     }
@@ -165,6 +181,31 @@ function MoneyIncome() {
                 });
             } else if (event.key === 'Enter' && focusedIndex >= 0) {
                 handleCustomerSelect(customerData[focusedIndex].customer_name);
+            }
+        }
+    };
+
+    const handleeditCustomerSelect = (customer) => {
+        seteditIncome(customer);
+        setcustomerData([]);
+    };
+
+    const handleeditcustomerKeyDown = (event) => {
+        if (customerData.length > 0) {
+            if (event.key === 'ArrowDown') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex + 1) % customerData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'ArrowUp') {
+                setFocusedIndex((prevIndex) => {
+                    const nextIndex = (prevIndex - 1 + customerData.length) % customerData.length;
+                    scrollToItem(nextIndex);
+                    return nextIndex;
+                });
+            } else if (event.key === 'Enter' && focusedIndex >= 0) {
+                handleeditCustomerSelect(customerData[focusedIndex].customer_name);
             }
         }
     };
@@ -269,12 +310,24 @@ function MoneyIncome() {
                         <TableRow key={index}>
                             <TableCell style={{ fontSize: '20px', padding: '10px' }}>
                                 {editIncomeID === income.id ? (
-                                    <InputField
-                                        className="Table-Input-Field"
-                                        type="text"
-                                        value={editIncome}
-                                        onChange={(e) => seteditIncome(e.target.value)}
-                                    />
+                                    <div className="SearchCustomer">
+                                        <InputField
+                                            className="Table-Input-Field"
+                                            type="text"
+                                            value={editIncome}
+                                            onChange={handleSearchEditCustomerChange}
+                                            onKeyDown={handleeditcustomerKeyDown}
+                                        />
+                                        {customerData.length > 0 && (
+                                            editIncome && <div className="dropdown" ref={dropdownRef}>
+                                                {customerData.map((customer, index) => (
+                                                    <div key={index} className={`dropdown-item${index === focusedIndex ? '-focused' : ''}`} onClick={() => handleeditCustomerSelect(customer.customer_name)}>
+                                                        {customer.customer_name}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 ) : (
                                     income.money_from
                                 )}
@@ -391,6 +444,10 @@ const StyledWrapper = styled.div`
     }
 }
 
+.SearchCustomer{
+    position:relative;
+}
+
 .note-field{
     width:10em;
     margin-left:-2em;
@@ -493,7 +550,6 @@ dropdown-item-focused {
         background-color:red;
     }
 }
-
 
 .backbtn{
     padding: 0.5em;
